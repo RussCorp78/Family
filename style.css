@@ -384,3 +384,35 @@ padding: 20px;
 }
 
 }
+
+/* =========================
+SHOPPING LIST
+========================= */
+
+.shopping-item {
+display: flex;
+align-items: center;
+gap: 12px;
+padding: 14px 0;
+border-bottom: 1px solid #ddd;
+}
+
+.shopping-item input[type="checkbox"] {
+width: 20px;
+height: 20px;
+flex-shrink: 0;
+}
+
+.shopping-title {
+flex: 1;
+font-size: 17px;
+}
+
+.shopping-title.completed {
+text-decoration: line-through;
+opacity: 0.5;
+}
+
+.shopping-item .delete-button {
+flex-shrink: 0;
+}
