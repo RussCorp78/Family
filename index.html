@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Our Home</title>
+
+<link rel="stylesheet" href="style.css">
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<!-- =====================================================
+LOGIN SCREEN
+===================================================== -->
+
+<section id="loginScreen" class="screen">
+
+<div class="login-box">
+
+<h1>Our Home</h1>
+
+<p class="subtitle">
+Private family dashboard
+</p>
+
+<form id="loginForm">
+
+<label for="email">Email</label>
+
+<input
+type="email"
+id="email"
+autocomplete="email"
+required
+>
+
+<label for="password">Password</label>
+
+<input
+type="password"
+id="password"
+autocomplete="current-password"
+required
+>
+
+<button type="submit">
+Sign in
+</button>
+
+</form>
+
+<p id="loginMessage" class="message"></p>
+
+</div>
+
+</section>
+
+
+<!-- =====================================================
+HOLDING SCREEN
+===================================================== -->
+
+<section id="holdingScreen" class="screen hidden">
+
+<div class="holding-box">
+
+<div class="lock">🔒</div>
+
+<h1>Private</h1>
+
+<p>
+This account isn't authorised to use
+this family dashboard.
+</p>
+
+<button id="holdingSignOut">
+Sign out
+</button>
+
+</div>
+
+</section>
+
+
+<!-- =====================================================
+MAIN APP
+===================================================== -->
+
+<section id="appScreen" class="hidden">
+
+<header>
+
+<div>
+<h1>Our Home</h1>
+<p id="welcome"></p>
+</div>
+
+<button id="signOut">
+Sign out
+</button>
+
+</header>
+
+
+<!-- Navigation -->
+
+<nav>
+
+<button
+class="nav-button active"
+data-section="todosSection">
+To Do
+</button>
+
+<button
+class="nav-button"
+data-section="diarySection">
+Diary
+</button>
+
+</nav>
+
+
+<!-- =================================================
+TODO SECTION
+================================================= -->
+
+<main id="todosSection" class="app-section">
+
+<div class="section-header">
+
+<h2>To Do</h2>
+
+<button id="showTodoForm">
++ Add
+</button>
+
+</div>
+
+
+<form id="todoForm" class="entry-form hidden">
+
+<input
+type="text"
+id="todoTitle"
+placeholder="What needs doing?"
+required
+>
+
+<input
+type="date"
+id="todoDate"
+>
+
+<textarea
+id="todoNotes"
+placeholder="Notes (optional)">
+</textarea>
+
+<div class="form-buttons">
+
+<button type="submit">
+Add
+</button>
+
+<button
+type="button"
+id="cancelTodo">
+Cancel
+</button>
+
+</div>
+
+</form>
+
+
+<div id="todoList"></div>
+
+</main>
+
+
+<!-- =================================================
+DIARY SECTION
+================================================= -->
+
+<main id="diarySection"
+class="app-section hidden">
+
+<div class="section-header">
+
+<h2>Diary</h2>
+
+<button id="showDiaryForm">
++ Add
+</button>
+
+</div>
+
+
+<form id="diaryForm"
+class="entry-form hidden">
+
+<input
+type="date"
+id="diaryDate"
+required
+>
+
+<input
+type="text"
+id="diaryTitle"
+placeholder="Title"
+>
+
+<textarea
+id="diaryContent"
+placeholder="What's happened today?"
+required>
+</textarea>
+
+<div class="form-buttons">
+
+<button type="submit">
+Save
+</button>
+
+<button
+type="button"
+id="cancelDiary">
+Cancel
+</button>
+
+</div>
+
+</form>
+
+
+<div id="diaryList"></div>
+
+</main>
+
+</section>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>
