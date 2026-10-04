@@ -306,6 +306,7 @@ const fallback =
 await supabaseClient
 .from("todos")
 .select("*")
+.eq("list_type", "todo")
 .order("completed", {
 ascending: true
 })
