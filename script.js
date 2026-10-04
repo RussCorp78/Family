@@ -111,6 +111,7 @@ welcome.textContent =
 `Hello ${data.display_name}`;
 showApp();
 await loadTodos();
+await loadShopping();
 await loadDiary();
 }
 // =========================================================
@@ -643,6 +644,274 @@ form.onsubmit = null;
 await loadTodos();
 };
 }
+
+// =========================================================
+// SHOPPING FORM
+// =========================================================
+
+document
+.getElementById("showShoppingForm")
+.addEventListener(
+"click",
+() => {
+
+document
+.getElementById("shoppingForm")
+.classList.remove("hidden");
+
+document
+.getElementById("shoppingTitle")
+.focus();
+
+}
+);
+
+
+document
+.getElementById("cancelShopping")
+.addEventListener(
+"click",
+() => {
+
+document
+.getElementById("shoppingForm")
+.reset();
+
+document
+.getElementById("shoppingForm")
+.classList.add("hidden");
+
+}
+);
+
+
+// =========================================================
+// ADD SHOPPING ITEM
+// =========================================================
+
+document
+.getElementById("shoppingForm")
+.addEventListener(
+"submit",
+async event => {
+
+event.preventDefault();
+
+const {
+data: {
+user
+}
+} =
+await supabaseClient.auth
+.getUser();
+
+if (!user) return;
+
+const title =
+document
+.getElementById("shoppingTitle")
+.value
+.trim();
+
+if (!title) return;
+
+const {
+error
+} =
+await supabaseClient
+.from("todos")
+.insert({
+title,
+created_by: user.id,
+list_type: "shopping"
+});
+
+if (error) {
+
+console.error(error);
+
+alert(
+"There was a problem adding the shopping item."
+);
+
+return;
+}
+
+document
+.getElementById("shoppingForm")
+.reset();
+
+document
+.getElementById("shoppingForm")
+.classList.add("hidden");
+
+await loadShopping();
+
+}
+);
+
+
+// =========================================================
+// LOAD SHOPPING LIST
+// =========================================================
+
+async function loadShopping() {
+
+const {
+data,
+error
+} =
+await supabaseClient
+.from("todos")
+.select("*")
+.eq("list_type", "shopping")
+.order("completed", {
+ascending: true
+})
+.order("created_at", {
+ascending: false
+});
+
+if (error) {
+
+console.error(error);
+
+return;
+}
+
+const list =
+document.getElementById("shoppingList");
+
+list.innerHTML = "";
+
+if (!data.length) {
+
+list.innerHTML =
+"<p>Your shopping list is empty.</p>";
+
+return;
+}
+
+data.forEach(item => {
+
+const element =
+document.createElement("div");
+
+element.className =
+"shopping-item";
+
+
+element.innerHTML = `
+
+<input
+type="checkbox"
+${item.completed ? "checked" : ""}
+>
+
+<div class="shopping-title ${
+item.completed
+? "completed"
+: ""
+}">
+${escapeHtml(item.title)}
+</div>
+
+<button
+class="delete-button">
+×
+</button>
+
+`;
+
+
+// Complete item
+
+element
+.querySelector("input")
+.addEventListener(
+"change",
+async event => {
+
+const {
+error
+} =
+await supabaseClient
+.from("todos")
+.update({
+completed:
+event.target.checked,
+
+completed_at:
+event.target.checked
+? new Date().toISOString()
+: null
+})
+.eq("id", item.id);
+
+if (error) {
+
+console.error(error);
+
+alert(
+"Unable to update the shopping item."
+);
+
+return;
+}
+
+await loadShopping();
+
+}
+);
+
+
+// Delete item
+
+element
+.querySelector(".delete-button")
+.addEventListener(
+"click",
+async () => {
+
+if (
+!confirm(
+"Delete this shopping item?"
+)
+) {
+return;
+}
+
+const {
+error
+} =
+await supabaseClient
+.from("todos")
+.delete()
+.eq("id", item.id);
+
+if (error) {
+
+console.error(error);
+
+alert(
+"Unable to delete the shopping item."
+);
+
+return;
+}
+
+await loadShopping();
+
+}
+);
+
+
+list.appendChild(element);
+
+});
+
+}
+
 // =========================================================
 // DIARY
 // =========================================================
