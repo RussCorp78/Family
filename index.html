@@ -113,15 +113,15 @@ Sign out
 
 <nav>
 
-<button
-class="nav-button active"
-data-section="todosSection">
+<button class="nav-button active" data-section="todosSection">
 To Do
 </button>
+  
+<button class="nav-button" data-selection="shoppingSection">
+Shopping
+</button>  
 
-<button
-class="nav-button"
-data-section="diarySection">
+<button class="nav-button" data-section="diarySection">
 Diary
 </button>
 
@@ -185,7 +185,28 @@ Cancel
 
 </main>
 
+<!-- Shopping List Secition -->
 
+<section id = "shoppingSection" class = "app-section hidden">
+<div class="section-header">
+  <h2>Shopping List</h2>
+  <button id="showShoppingForm" class = "primary-button">
+    + Add Item
+  </button>
+</div>
+
+  <form id ="shoppingForm" class="entry-form hidden"> 
+<input type = "text" id="shoppingTitle" placeholder="What do you need?" required>
+    <button type="submit" class="primary-button">
+      Add
+    </button>  
+    <button type="button" id "cancelShopping" class="secondary-button">
+      Cancel
+    </button>
+  </form>
+  <div id="shoppingList"></div>
+</section>
+  
 <!-- =================================================
 DIARY SECTION
 ================================================= -->
