@@ -951,5 +951,3 @@ return String(value)
 "&#039;"
 );
 }
-
-Sent using the mail.com mail app
