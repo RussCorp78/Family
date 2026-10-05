@@ -416,3 +416,35 @@ opacity: 0.5;
 .shopping-item .delete-button {
 flex-shrink: 0;
 }
+/* =========================
+CALENDAR
+========================= */
+.calendar-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.calendar-date-badge {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #2b6cb0;
+  min-width: 140px;
+}
+
+.calendar-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
+.calendar-location,
+.calendar-description {
+  font-size: 0.875rem;
+  color: #718096;
+  margin-top: 0.25rem;
+}
