@@ -14,7 +14,7 @@ SUPABASE_PUBLISHABLE_KEY
 // =========================================================
 // CLOUFLARE CONFIGURATION
 // =========================================================
-const CLOUDFLARE_WORKER_URL = "https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev";
+const CLOUDFLARE_WORKER_URL = "tight-mountain-7d4b.paul-russell.workers.dev";
 
 
 // =========================================================
