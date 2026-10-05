@@ -419,21 +419,34 @@ flex-shrink: 0;
 /* =========================
 CALENDAR
 ========================= */
+.calendar-group {
+  margin-bottom: 1.5rem;
+}
+
+.calendar-group h3 {
+  font-size: 1.1rem;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.25rem;
+}
+
 .calendar-item {
   display: flex;
+  align-items: center;
   gap: 1rem;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   background: #ffffff;
   border-radius: 8px;
-  margin-bottom: 0.75rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .calendar-date-badge {
-  font-weight: bold;
-  font-size: 0.9rem;
+  font-weight: 600;
+  font-size: 0.85rem;
   color: #2b6cb0;
-  min-width: 140px;
+  min-width: 120px;
 }
 
 .calendar-title {
