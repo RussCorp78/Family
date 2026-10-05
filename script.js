@@ -10,6 +10,13 @@ supabase.createClient(
 SUPABASE_URL,
 SUPABASE_PUBLISHABLE_KEY
 );
+
+// =========================================================
+// CLOUFLARE CONFIGURATION
+// =========================================================
+const CLOUDFLARE_WORKER_URL = "https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev";
+
+
 // =========================================================
 // ELEMENTS
 // =========================================================
@@ -113,6 +120,7 @@ showApp();
 await loadTodos();
 await loadShopping();
 await loadDiary();
+await loadCalendar(); // <--- Added her
 }
 // =========================================================
 // SCREEN CONTROL
@@ -1220,4 +1228,84 @@ return String(value)
 "'",
 "&#039;"
 );
+}
+// =========================================================
+// CALENDAR
+// =========================================================
+
+document.getElementById("refreshCalendar")?.addEventListener("click", async () => {
+  await loadCalendar();
+});
+
+async function loadCalendar() {
+  const list = document.getElementById("calendarList");
+  if (!list) return;
+
+  list.innerHTML = `<p class="message">Loading calendar events...</p>`;
+
+  try {
+    const response = await fetch(CLOUDFLARE_WORKER_URL);
+    if (!response.ok) {
+      throw new Error("Failed to fetch calendar events.");
+    }
+
+    const events = await response.json();
+    renderCalendarEvents(events);
+  } catch (error) {
+    console.error("Calendar Load Error:", error);
+    list.innerHTML = `<p class="message">Unable to load calendar events right now.</p>`;
+  }
+}
+
+function renderCalendarEvents(events) {
+  const list = document.getElementById("calendarList");
+  list.innerHTML = "";
+
+  if (!events || events.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <p>No upcoming events found.</p>
+      </div>
+    `;
+    return;
+  }
+
+  events.forEach(event => {
+    const item = document.createElement("div");
+    item.className = "calendar-item";
+
+    const eventDate = formatCalendarDate(event.start, event.isAllDay);
+
+    item.innerHTML = `
+      <div class="calendar-date-badge">
+        ${eventDate}
+      </div>
+      <div class="calendar-content">
+        <div class="calendar-title">${escapeHtml(event.summary)}</div>
+        ${event.location ? `<div class="calendar-location">📍 ${escapeHtml(event.location)}</div>` : ""}
+        ${event.description ? `<div class="calendar-description">${escapeHtml(event.description)}</div>` : ""}
+      </div>
+    `;
+
+    list.appendChild(item);
+  });
+}
+
+function formatCalendarDate(dateString, isAllDay) {
+  const date = new Date(dateString);
+  if (isAllDay) {
+    return date.toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short"
+    }) + " (All Day)";
+  }
+
+  return date.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
