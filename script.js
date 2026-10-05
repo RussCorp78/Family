@@ -119,7 +119,6 @@ welcome.textContent =
 showApp();
 await loadTodos();
 await loadShopping();
-await loadDiary();
 await loadCalendar(); // <--- Added her
 }
 // =========================================================
@@ -285,12 +284,8 @@ error
 } =
 await supabaseClient
 .from("todos")
-.select(`
-*,
-allowed_users:created_by (
-display_name
-)
-`)
+.select(`*,allowed_users:created_by (display_name)`)
+.eq("list_type", "todo")
 .order("completed", {
 ascending: true
 })
@@ -1005,7 +1000,6 @@ document
 document
 .getElementById("diaryForm")
 .classList.add("hidden");
-await loadDiary();
 }
 );
 // =========================================================
@@ -1089,7 +1083,6 @@ alert(
 );
 return;
 }
-await loadDiary();
 }
 );
 list.appendChild(item);
