@@ -121,11 +121,7 @@ To Do
 Shopping
 </button>  
 
-<button class="nav-button" data-section="diarySection">
-Diary
-</button>
-
-  <button class="nav-button" data-section="calendarSection">
+<button class="nav-button" data-section="calendarSection">
 Calendar
 </button>
 
@@ -210,87 +206,28 @@ Cancel
   </form>
   <div id="shoppingList"></div>
 </section>
-  
-<!-- =================================================
-DIARY SECTION
-================================================= -->
-
-<main id="diarySection"
-class="app-section hidden">
-
-<div class="section-header">
-
-<h2>Diary</h2>
-
-<button id="showDiaryForm">
-+ Add
-</button>
-
-</div>
-
-
-<form id="diaryForm"
-class="entry-form hidden">
-
-<input
-type="date"
-id="diaryDate"
-required
->
-
-<input
-type="text"
-id="diaryTitle"
-placeholder="Title"
->
-
-<textarea
-id="diaryContent"
-placeholder="What's happened today?"
-required>
-</textarea>
-
-<div class="form-buttons">
-
-<button type="submit">
-Save
-</button>
-
-<button
-type="button"
-id="cancelDiary">
-Cancel
-</button>
-
-</div>
-
-</form>
-
-
-<div id="diaryList"></div>
-
-</main>
-
-</section>
 
 <!-- =================================================
 CALENDAR SECTION
 ================================================= -->
 
 <main id="calendarSection" class="app-section hidden">
+  <div class="section-header">
+    <h2>Calendar</h2>
+    <button id="refreshCalendar">🔄 Refresh</button>
+  </div>
 
-<div class="section-header">
+  <!-- TODAY'S EVENTS -->
+  <div class="calendar-group">
+    <h3>Today</h3>
+    <div id="calendarTodayList" class="calendar-sublist"></div>
+  </div>
 
-<h2>Calendar</h2>
-
-<button id="refreshCalendar">
-🔄 Refresh
-</button>
-
-</div>
-
-<div id="calendarList"></div>
-
+  <!-- UPCOMING EVENTS -->
+  <div class="calendar-group">
+    <h3>Upcoming (Next 7 Days)</h3>
+    <div id="calendarUpcomingList" class="calendar-sublist"></div>
+  </div>
 </main>
   
 <script src="script.js"></script>
