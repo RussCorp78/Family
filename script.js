@@ -128,15 +128,26 @@ document.getElementById("holdingSignOut")?.addEventListener("click", async () =>
 // NAVIGATION
 // =========================================================
 document.querySelectorAll(".nav-button").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll(".nav-button").forEach((b) => b.classList.remove("active"));
+  button.addEventListener("click", async () => {
+    // Remove active class from all buttons and add to clicked
+    document.querySelectorAll(".nav-button").forEach((btn) => btn.classList.remove("active"));
     button.classList.add("active");
 
-    document.querySelectorAll(".app-section").forEach((section) => section.classList.add("hidden"));
-    
-    const targetSection = document.getElementById(button.dataset.section);
+    // Hide all sections
+    document.querySelectorAll(".app-section").forEach((section) => {
+      section.classList.add("hidden");
+    });
+
+    // Show selected section
+    const targetSectionId = button.dataset.section;
+    const targetSection = document.getElementById(targetSectionId);
     if (targetSection) {
       targetSection.classList.remove("hidden");
+    }
+
+    // Refresh data for the specific section being opened
+    if (targetSectionId === "recipeSection") {
+      await loadRecipes();
     }
   });
 });
@@ -898,6 +909,9 @@ async function loadRecipes() {
   }
 
   allRecipes = data || [];
+  // Reset view back to grid (hide detail modal if open)
+  document.getElementById("recipeDetail")?.classList.add("hidden");
+  document.getElementById("recipeGrid")?.classList.remove("hidden");
   renderRecipeCards(allRecipes);
 }
 
