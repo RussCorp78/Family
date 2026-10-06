@@ -663,3 +663,158 @@ function formatCalendarDate(dateString, isAllDay) {
     minute: "2-digit"
   });
 }
+
+// =========================================================
+// CHANGE PASSWORD
+// =========================================================
+
+document
+    .getElementById("showPasswordForm")
+    .addEventListener(
+        "click",
+        () => {
+
+            document
+                .getElementById("passwordFormContainer")
+                .classList.remove("hidden");
+
+            document
+                .getElementById("passwordMessage")
+                .textContent = "";
+
+            document
+                .getElementById("passwordForm")
+                .reset();
+
+            document
+                .getElementById("newPassword")
+                .focus();
+
+        }
+    );
+
+
+// =========================================================
+// CANCEL PASSWORD CHANGE
+// =========================================================
+
+document
+    .getElementById("cancelPassword")
+    .addEventListener(
+        "click",
+        () => {
+
+            document
+                .getElementById("passwordForm")
+                .reset();
+
+            document
+                .getElementById("passwordMessage")
+                .textContent = "";
+
+            document
+                .getElementById("passwordFormContainer")
+                .classList.add("hidden");
+
+        }
+    );
+
+
+// =========================================================
+// UPDATE PASSWORD
+// =========================================================
+
+document
+    .getElementById("passwordForm")
+    .addEventListener(
+        "submit",
+        async event => {
+
+            event.preventDefault();
+
+            const newPassword =
+                document
+                    .getElementById("newPassword")
+                    .value;
+
+            const confirmPassword =
+                document
+                    .getElementById("confirmPassword")
+                    .value;
+
+            const message =
+                document
+                    .getElementById("passwordMessage");
+
+
+            // Check passwords match
+
+            if (newPassword !== confirmPassword) {
+
+                message.textContent =
+                    "The passwords do not match.";
+
+                return;
+            }
+
+
+            // Minimum length
+
+            if (newPassword.length < 8) {
+
+                message.textContent =
+                    "Password must be at least 8 characters.";
+
+                return;
+            }
+
+
+            message.textContent =
+                "Changing password...";
+
+
+            const {
+                error
+            } =
+                await supabaseClient.auth.updateUser({
+                    password: newPassword
+                });
+
+
+            if (error) {
+
+                console.error(error);
+
+                message.textContent =
+                    "Unable to change the password.";
+
+                return;
+            }
+
+
+            message.textContent =
+                "Password changed successfully.";
+
+
+            document
+                .getElementById("passwordForm")
+                .reset();
+
+
+            setTimeout(
+                () => {
+
+                    document
+                        .getElementById(
+                            "passwordFormContainer"
+                        )
+                        .classList.add("hidden");
+
+                    message.textContent = "";
+
+                },
+                2000
+            );
+
+        }
+    );
