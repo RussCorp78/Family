@@ -820,11 +820,72 @@ document
     );
 
 // =========================================================
-// RECIPES
+// RECIPES SECTION
 // =========================================================
 
-let allRecipes = []; // Cache locally for lightning-fast search
+let allRecipes = [];
 
+// Initialize Recipe Event Listeners (call this once on load)
+function initRecipeEventListeners() {
+  const showBtn = document.getElementById("showRecipeForm");
+  const cancelBtn = document.getElementById("cancelRecipe");
+  const form = document.getElementById("recipeForm");
+
+  // Show Add Form
+  showBtn?.addEventListener("click", () => {
+    form?.classList.remove("hidden");
+  });
+
+  // Hide Add Form
+  cancelBtn?.addEventListener("click", () => {
+    form?.classList.add("hidden");
+    form?.reset();
+  });
+
+  // Save New Recipe to Supabase
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById("recipeTitle").value.trim();
+    const category = document.getElementById("recipeCategory").value.trim();
+    const prep_time = document.getElementById("recipePrep").value.trim();
+    const cook_time = document.getElementById("recipeCook").value.trim();
+
+    // Convert line breaks to array entries
+    const ingredients = document
+      .getElementById("recipeIngredients")
+      .value.split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    const instructions = document
+      .getElementById("recipeInstructions")
+      .value.split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    const { error } = await supabaseClient.from("recipes").insert([
+      { title, category, prep_time, cook_time, ingredients, instructions },
+    ]);
+
+    if (error) {
+      alert("Error saving recipe: " + error.message);
+      return;
+    }
+
+    form.reset();
+    form.classList.add("hidden");
+    await loadRecipes();
+  });
+
+  // Category Filter Listener
+  document.getElementById("categoryFilter")?.addEventListener("change", applyRecipeFilters);
+
+  // Search Input Listener
+  document.getElementById("recipeSearch")?.addEventListener("input", applyRecipeFilters);
+}
+
+// Fetch recipes without modifying tab visibility
 async function loadRecipes() {
   const { data, error } = await supabaseClient
     .from("recipes")
@@ -836,24 +897,29 @@ async function loadRecipes() {
     return;
   }
 
-  allRecipes = data;
+  allRecipes = data || [];
   renderRecipeCards(allRecipes);
 }
 
-// Live Search Filter
-document.getElementById("recipeSearch")?.addEventListener("input", (e) => {
-  const query = e.target.value.toLowerCase();
-  
+// Apply Search + Category Filters
+function applyRecipeFilters() {
+  const query = document.getElementById("recipeSearch")?.value.toLowerCase() || "";
+  const selectedCategory = document.getElementById("categoryFilter")?.value || "";
+
   const filtered = allRecipes.filter((recipe) => {
     const titleMatch = recipe.title.toLowerCase().includes(query);
-    const ingredientMatch = recipe.ingredients.some((ing) => ing.toLowerCase().includes(query));
-    return titleMatch || ingredientMatch;
+    const ingredientMatch = recipe.ingredients?.some((ing) =>
+      ing.toLowerCase().includes(query)
+    );
+    const categoryMatch = !selectedCategory || recipe.category === selectedCategory;
+
+    return (titleMatch || ingredientMatch) && categoryMatch;
   });
 
   renderRecipeCards(filtered);
-});
+}
 
-// Render Thumbnails Grid
+// Render Recipe Thumbnails
 function renderRecipeCards(recipes) {
   const container = document.getElementById("recipeGrid");
   if (!container) return;
@@ -878,74 +944,32 @@ function renderRecipeCards(recipes) {
   });
 }
 
-// Open 2-Section View
+// Open Full Recipe View
 function openRecipeDetail(recipe) {
   document.getElementById("recipeGrid").classList.add("hidden");
   document.getElementById("recipeDetail").classList.remove("hidden");
 
   document.getElementById("detailTitle").textContent = recipe.title;
   document.getElementById("detailMeta").textContent = 
-    `Prep: ${recipe.prep_time || 'N/A'} | Cook: ${recipe.cook_time || 'N/A'} | Serves: ${recipe.servings || 'N/A'}`;
+    `Prep: ${recipe.prep_time || 'N/A'} | Cook: ${recipe.cook_time || 'N/A'}`;
 
-  // Render Ingredients List
   const ingList = document.getElementById("detailIngredients");
-  ingList.innerHTML = recipe.ingredients
+  ingList.innerHTML = (recipe.ingredients || [])
     .map((ing) => `<li>${escapeHtml(ing)}</li>`)
     .join("");
 
-  // Render Instructions List
   const instList = document.getElementById("detailInstructions");
-  instList.innerHTML = recipe.instructions
+  instList.innerHTML = (recipe.instructions || [])
     .map((step) => `<li>${escapeHtml(step)}</li>`)
     .join("");
 }
 
-// Back Button
+// Back Button for Full Recipe View
 document.getElementById("closeRecipe")?.addEventListener("click", () => {
   document.getElementById("recipeDetail").classList.add("hidden");
   document.getElementById("recipeGrid").classList.remove("hidden");
 });
 
-// Toggle Form Visibility
-document.getElementById("showRecipeForm")?.addEventListener("click", () => {
-  document.getElementById("recipeForm").classList.remove("hidden");
-});
-
-document.getElementById("cancelRecipe")?.addEventListener("click", () => {
-  document.getElementById("recipeForm").classList.add("hidden");
-});
-
-// Save Recipe to Supabase
-document.getElementById("recipeForm")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const title = document.getElementById("recipeTitle").value;
-  const category = document.getElementById("recipeCategory").value;
-  const prep_time = document.getElementById("recipePrep").value;
-  const cook_time = document.getElementById("recipeCook").value;
-  
-  // Split textarea lines into arrays
-  const ingredients = document.getElementById("recipeIngredients").value
-    .split("\n")
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-
-  const instructions = document.getElementById("recipeInstructions").value
-    .split("\n")
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-
-  const { error } = await supabaseClient.from("recipes").insert([
-    { title, category, prep_time, cook_time, ingredients, instructions }
-  ]);
-
-  if (error) {
-    alert("Error saving recipe: " + error.message);
-    return;
-  }
-
-  // Reset & Refresh
-  document.getElementById("recipeForm").reset();
-  document.getElementById("recipeForm").classList.add("hidden");
-  await loadRecipes();
+document.addEventListener("DOMContentLoaded", () => {
+  initRecipeEventListeners(); // Sets up button click events
 });
