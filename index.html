@@ -157,8 +157,33 @@ RECIPE SECTION
 ================================================= -->
 
 <section id="recipeSection" class="app-section">
-  <div class="recipe-header">
-    <h2>Recipe Collection</h2>
+      <div class="recipe-header">
+        <h2>Recipe Collection</h2>
+        <button id="showRecipeForm" class="primary-button">+ Add Recipe</button>
+    </div>
+
+<!-- ADD RECIPE FORM -->
+<form id="recipeForm" class="entry-form hidden">
+  <input type="text" id="recipeTitle" placeholder="Recipe Title" required />
+  
+  <div class="form-row">
+    <input type="text" id="recipeCategory" placeholder="Category (e.g. Dinner, Baking)" />
+    <input type="text" id="recipePrep" placeholder="Prep Time (e.g. 15 mins)" />
+    <input type="text" id="recipeCook" placeholder="Cook Time (e.g. 30 mins)" />
+  </div>
+
+  <label for="recipeIngredients">Ingredients (one per line):</label>
+  <textarea id="recipeIngredients" rows="5" placeholder="500g minced beef&#10;1 diced onion&#10;2 cloves garlic" required></textarea>
+
+  <label for="recipeInstructions">Instructions (one step per line):</label>
+  <textarea id="recipeInstructions" rows="5" placeholder="Sauté onion and garlic.&#10;Add beef and brown.&#10;Simmer with tomatoes." required></textarea>
+
+  <div class="form-buttons">
+    <button type="submit" class="primary-button">Save Recipe</button>
+    <button type="button" id="cancelRecipe" class="secondary-button">Cancel</button>
+  </div>
+</form>
+    
     <div class="search-box">
       <input type="text" id="recipeSearch" placeholder="Search recipes or ingredients..." />
       <select id="categoryFilter">
