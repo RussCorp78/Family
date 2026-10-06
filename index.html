@@ -85,18 +85,20 @@ MAIN APP
 <!-- =====================================================
 NAVIGATION
 ===================================================== -->
-    
-<nav>
+<main id="appScreen" class="hidden">
+    bar">
+<nav class="nav->
     <button class="nav-button active" data-section="todosSection"> To Do </button>  
     <button class="nav-button" data-section="shoppingSection"> Shopping </button>  
     <button class="nav-button" data-section="calendarSection"> Calendar </button>
+    <button class="nav-button" data-section="recipeSection">Recipes</button>
 </nav>
 
 <!-- =================================================
 TODO SECTION
 ================================================= -->
 
-<main id="todosSection" class="app-section">
+<section id="todosSection" class="app-section">
     <div class="section-header">
         <h2>To Do</h2>
         <button id="showTodoForm"> + Add </button>
@@ -111,7 +113,7 @@ TODO SECTION
         </div>
     </form>
     <div id="todoList"></div>
-</main>
+</section>
 
 <!-- =================================================
 SHOPPING LIST SECTION
@@ -134,7 +136,7 @@ SHOPPING LIST SECTION
 CALENDAR SECTION
 ================================================= -->
 
-<main id="calendarSection" class="app-section hidden">
+<section id="calendarSection" class="app-section hidden">
     <div class="section-header">
         <h2>Calendar</h2>
         <button id="refreshCalendar">🔄 Refresh</button>
@@ -151,10 +153,10 @@ CALENDAR SECTION
     <h3>Upcoming (Next 7 Days)</h3>
     <div id="calendarUpcomingList" class="calendar-sublist"></div>
   </div>
-</main>
+</section>
 
 <!-- =================================================
-CALENDAR SECTION
+RECIPE SECTION
 ================================================= -->
 
 <section id="recipeSection" class="app-section">
@@ -198,7 +200,7 @@ CALENDAR SECTION
     </div>
   </div>
 </section>
-    
+</main>
 <script src="script.js"></script>
 
 </body>
