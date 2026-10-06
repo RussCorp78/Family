@@ -156,7 +156,7 @@ CALENDAR SECTION
 RECIPE SECTION
 ================================================= -->
 
-<section id="recipeSection" class="app-section">
+<section id="recipeSection" class="app-section hidden">
       <div class="recipe-header">
         <h2>Recipe Collection</h2>
         <button id="showRecipeForm" class="primary-button">+ Add Recipe</button>
@@ -166,7 +166,7 @@ RECIPE SECTION
 <form id="recipeForm" class="entry-form hidden">
   <input type="text" id="recipeTitle" placeholder="Recipe Title" required />
   
-  <div class="form-row">
+  <div class="form-row" style="display: flex; gap: 8px; margin: 8px 0;">
     <input type="text" id="recipeCategory" placeholder="Category (e.g. Dinner, Baking)" />
     <input type="text" id="recipePrep" placeholder="Prep Time (e.g. 15 mins)" />
     <input type="text" id="recipeCook" placeholder="Cook Time (e.g. 30 mins)" />
@@ -178,13 +178,13 @@ RECIPE SECTION
   <label for="recipeInstructions">Instructions (one step per line):</label>
   <textarea id="recipeInstructions" rows="5" placeholder="Sauté onion and garlic.&#10;Add beef and brown.&#10;Simmer with tomatoes." required></textarea>
 
-  <div class="form-buttons">
+  <div class="form-buttons" style="margin-top: 10px;">
     <button type="submit" class="primary-button">Save Recipe</button>
     <button type="button" id="cancelRecipe" class="secondary-button">Cancel</button>
   </div>
 </form>
     
-    <div class="search-box">
+    <div class="search-box" style="margin-top: 15px;">
       <input type="text" id="recipeSearch" placeholder="Search recipes or ingredients..." />
       <select id="categoryFilter">
         <option value="">All Categories</option>
@@ -202,7 +202,6 @@ RECIPE SECTION
   <!-- Detailed Recipe Modal / View -->
   <div id="recipeDetail" class="recipe-detail-container hidden">
     <button id="closeRecipe" class="close-btn">&larr; Back to search</button>
-    
     <div class="recipe-card-full">
       <h1 id="detailTitle"></h1>
       <div class="recipe-meta" id="detailMeta"></div>
