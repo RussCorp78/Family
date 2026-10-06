@@ -2,16 +2,19 @@
 <html lang="en">
 
 <head>
-<meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Our Home</title>
+    <title>Our Home</title>
 
-<link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css">
 
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- =====================================================
+SUPABASE LINK
+===================================================== -->
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
 </head>
 
 <body>
@@ -19,261 +22,110 @@ content="width=device-width, initial-scale=1.0">
 <!-- =====================================================
 LOGIN SCREEN
 ===================================================== -->
-
+    
 <section id="loginScreen" class="screen">
-
-<div class="login-box">
-
-<h1>Our Home</h1>
-
-<p class="subtitle">
-Private Russell family dashboard
-</p>
-
-<form id="loginForm">
-
-<label for="email">Email</label>
-
-<input
-type="email"
-id="email"
-autocomplete="email"
-required
->
-
-<label for="password">Password</label>
-
-<input
-type="password"
-id="password"
-autocomplete="current-password"
-required
->
-
-<button type="submit">
-Sign in
-</button>
-
-</form>
-
-<p id="loginMessage" class="message"></p>
-
-</div>
-
+    <div class="login-box">
+        <h1>Our Home</h1>
+        <p class="subtitle"> Private Russell family dashboard </p>
+            <form id="loginForm">
+                <label for="email">Email</label>
+                <input type="email" id="email" autocomplete="email" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" autocomplete="current-password" required>
+                <button type="submit"> Sign in </button>
+            </form>
+        <p id="loginMessage" class="message"></p>
+    </div>
 </section>
-
 
 <!-- =====================================================
 HOLDING SCREEN
 ===================================================== -->
-
+    
 <section id="holdingScreen" class="screen hidden">
-
-<div class="holding-box">
-
-<div class="lock">🔒</div>
-
-<h1>Private</h1>
-
-<p>
-This account isn't authorised to use
-this family dashboard.
-</p>
-
-<button id="holdingSignOut">
-Sign out
-</button>
-
-</div>
-
+    <div class="holding-box">
+    <div class="lock">🔒</div>
+        <h1>Private</h1>
+            <p>
+            This account isn't authorised to use
+            this family dashboard.
+            </p>
+        <button id="holdingSignOut"> Sign out </button>
+    </div>
 </section>
-
 
 <!-- =====================================================
 MAIN APP
 ===================================================== -->
-
+    
 <section id="appScreen" class="hidden">
+    <header class="app-header">
+        <div id="welcome"></div>
+        <div class="header-actions">
+            <button id="showPasswordForm" type="button"> Change Password</button>
+            <button id="signOut" type="button"> Sign Out </button>
+        </div>
+    </header>
 
-<header class="app-header">
-
-    <div id="welcome"></div>
-
-    <div class="header-actions">
-
-        <button
-            id="showPasswordForm"
-            type="button"
-        >
-            Change Password
-        </button>
-
-        <button
-            id="signOut"
-            type="button"
-        >
-            Sign Out
-        </button>
-
+    <div id="passwordFormContainer" class="password-form-container hidden">
+        <form id="passwordForm">
+            <h2>Change Password</h2>
+            <label for="newPassword"> New password </label>
+            <input type="password" id="newPassword" autocomplete="new-password" minlength="8" required>
+            <label for="confirmPassword"> Confirm new password </label>
+            <input type="password" id="confirmPassword" autocomplete="new-password" minlength="8" required>
+              <div id="passwordMessage" class="password-message"> </div>
+                <div class="password-buttons">
+                    <button type="submit" class="primary-button"> Change Password </button>
+                    <button type="button" id="cancelPassword" class="secondary-button"> Cancel </button>
+                </div>
+        </form>
     </div>
 
-</header>
-
-<div
-    id="passwordFormContainer"
-    class="password-form-container hidden"
->
-
-    <form id="passwordForm">
-
-        <h2>Change Password</h2>
-
-        <label for="newPassword">
-            New password
-        </label>
-
-        <input
-            type="password"
-            id="newPassword"
-            autocomplete="new-password"
-            minlength="8"
-            required
-        >
-
-        <label for="confirmPassword">
-            Confirm new password
-        </label>
-
-        <input
-            type="password"
-            id="confirmPassword"
-            autocomplete="new-password"
-            minlength="8"
-            required
-        >
-
-        <div
-            id="passwordMessage"
-            class="password-message"
-        ></div>
-
-        <div class="password-buttons">
-
-            <button
-                type="submit"
-                class="primary-button"
-            >
-                Change Password
-            </button>
-
-            <button
-                type="button"
-                id="cancelPassword"
-                class="secondary-button"
-            >
-                Cancel
-            </button>
-
-        </div>
-
-    </form>
-
-</div>
-
-<!-- Navigation -->
-
+<!-- =====================================================
+NAVIGATION
+===================================================== -->
+    
 <nav>
-
-<button class="nav-button active" data-section="todosSection">
-To Do
-</button>
-  
-<button class="nav-button" data-section="shoppingSection">
-Shopping
-</button>  
-
-<button class="nav-button" data-section="calendarSection">
-Calendar
-</button>
-
+    <button class="nav-button active" data-section="todosSection"> To Do </button>  
+    <button class="nav-button" data-section="shoppingSection"> Shopping </button>  
+    <button class="nav-button" data-section="calendarSection"> Calendar </button>
 </nav>
-
 
 <!-- =================================================
 TODO SECTION
 ================================================= -->
 
 <main id="todosSection" class="app-section">
-
-<div class="section-header">
-
-<h2>To Do</h2>
-
-<button id="showTodoForm">
-+ Add
-</button>
-
-</div>
-
-
-<form id="todoForm" class="entry-form hidden">
-
-<input
-type="text"
-id="todoTitle"
-placeholder="What needs doing?"
-required
->
-
-<input
-type="date"
-id="todoDate"
->
-
-<textarea
-id="todoNotes"
-placeholder="Notes (optional)">
-</textarea>
-
-<div class="form-buttons">
-
-<button type="submit">
-Add
-</button>
-
-<button
-type="button"
-id="cancelTodo">
-Cancel
-</button>
-
-</div>
-
-</form>
-
-
-<div id="todoList"></div>
-
+    <div class="section-header">
+        <h2>To Do</h2>
+        <button id="showTodoForm"> + Add </button>
+    </div>
+    <form id="todoForm" class="entry-form hidden">
+        <input type="text" id="todoTitle" placeholder="What needs doing?" required>
+        <input type="date" id="todoDate">
+        <textarea id="todoNotes" placeholder="Notes (optional)"> </textarea>
+        <div class="form-buttons">
+            <button type="submit"> Add </button>
+            <button type="button" id="cancelTodo"> Cancel </button>
+        </div>
+    </form>
+    <div id="todoList"></div>
 </main>
 
-<!-- Shopping List Secition -->
+<!-- =================================================
+SHOPPING LIST SECTION
+================================================= -->
 
 <section id="shoppingSection" class="app-section hidden">
-<div class="section-header">
-  <h2>Shopping List</h2>
-  <button id="showShoppingForm" class="primary-button">
-    + Add Item
-  </button>
-</div>
-
+    <div class="section-header">
+          <h2>Shopping List</h2>
+          <button id="showShoppingForm" class="primary-button"> + Add Item </button>
+    </div>
   <form id ="shoppingForm" class="entry-form hidden"> 
-<input type ="text" id="shoppingTitle" placeholder="What do you need?" required>
-    <button type="submit" class="primary-button">
-      Add
-    </button>  
-    <button type="button" id="cancelShopping" class="secondary-button">
-      Cancel
-    </button>
+        <input type ="text" id="shoppingTitle" placeholder="What do you need?" required>
+        <button type="submit" class="primary-button"> Add </button>  
+    <button type="button" id="cancelShopping" class="secondary-button"> Cancel </button>
   </form>
   <div id="shoppingList"></div>
 </section>
@@ -283,11 +135,11 @@ CALENDAR SECTION
 ================================================= -->
 
 <main id="calendarSection" class="app-section hidden">
-  <div class="section-header">
-    <h2>Calendar</h2>
-    <button id="refreshCalendar">🔄 Refresh</button>
-  </div>
-
+    <div class="section-header">
+        <h2>Calendar</h2>
+        <button id="refreshCalendar">🔄 Refresh</button>
+    </div>
+    
   <!-- TODAY'S EVENTS -->
   <div class="calendar-group">
     <h3>Today</h3>
@@ -304,4 +156,5 @@ CALENDAR SECTION
 <script src="script.js"></script>
 
 </body>
+    
 </html>
