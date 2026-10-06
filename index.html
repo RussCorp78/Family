@@ -95,19 +95,90 @@ MAIN APP
 
 <section id="appScreen" class="hidden">
 
-<header>
+<header class="app-header">
 
-<div>
-<h1>Our Home</h1>
-<p id="welcome"></p>
-</div>
+    <div id="welcome"></div>
 
-<button id="signOut">
-Sign out
-</button>
+    <div class="header-actions">
+
+        <button
+            id="showPasswordForm"
+            type="button"
+        >
+            Change Password
+        </button>
+
+        <button
+            id="signOut"
+            type="button"
+        >
+            Sign Out
+        </button>
+
+    </div>
 
 </header>
 
+<div
+    id="passwordFormContainer"
+    class="password-form-container hidden"
+>
+
+    <form id="passwordForm">
+
+        <h2>Change Password</h2>
+
+        <label for="newPassword">
+            New password
+        </label>
+
+        <input
+            type="password"
+            id="newPassword"
+            autocomplete="new-password"
+            minlength="8"
+            required
+        >
+
+        <label for="confirmPassword">
+            Confirm new password
+        </label>
+
+        <input
+            type="password"
+            id="confirmPassword"
+            autocomplete="new-password"
+            minlength="8"
+            required
+        >
+
+        <div
+            id="passwordMessage"
+            class="password-message"
+        ></div>
+
+        <div class="password-buttons">
+
+            <button
+                type="submit"
+                class="primary-button"
+            >
+                Change Password
+            </button>
+
+            <button
+                type="button"
+                id="cancelPassword"
+                class="secondary-button"
+            >
+                Cancel
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
 
 <!-- Navigation -->
 
