@@ -461,3 +461,60 @@ CALENDAR
   color: #718096;
   margin-top: 0.25rem;
 }
+
+
+/* =========================
+   HEADER ACTIONS
+   ========================= */
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+/* =========================
+   PASSWORD FORM
+   ========================= */
+
+.password-form-container {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: #f8f8f8;
+}
+
+.password-form-container form {
+    max-width: 400px;
+}
+
+.password-form-container h2 {
+    margin-top: 0;
+}
+
+.password-form-container label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.password-form-container input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.password-message {
+    margin-top: 12px;
+    min-height: 20px;
+}
+
+.password-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
