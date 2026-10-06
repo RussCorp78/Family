@@ -152,7 +152,53 @@ CALENDAR SECTION
     <div id="calendarUpcomingList" class="calendar-sublist"></div>
   </div>
 </main>
-  
+
+<!-- =================================================
+CALENDAR SECTION
+================================================= -->
+
+<section id="recipeSection" class="app-section">
+  <div class="recipe-header">
+    <h2>Recipe Collection</h2>
+    <div class="search-box">
+      <input type="text" id="recipeSearch" placeholder="Search recipes or ingredients..." />
+      <select id="categoryFilter">
+        <option value="">All Categories</option>
+        <option value="Dinner">Dinner</option>
+        <option value="Lunch">Lunch</option>
+        <option value="Baking">Baking</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="recipeGrid" class="recipe-grid">
+    <!-- Search results / Recipe Cards will load here -->
+  </div>
+
+  <!-- Detailed Recipe Modal / View -->
+  <div id="recipeDetail" class="recipe-detail-container hidden">
+    <button id="closeRecipe" class="close-btn">&larr; Back to search</button>
+    
+    <div class="recipe-card-full">
+      <h1 id="detailTitle"></h1>
+      <div class="recipe-meta" id="detailMeta"></div>
+
+      <!-- 2-SECTION DISPLAY -->
+      <div class="recipe-two-columns">
+        <div class="ingredients-section">
+          <h3>Ingredients</h3>
+          <ul id="detailIngredients"></ul>
+        </div>
+
+        <div class="instructions-section">
+          <h3>Instructions</h3>
+          <ol id="detailInstructions"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+    
 <script src="script.js"></script>
 
 </body>
