@@ -818,3 +818,90 @@ document
 
         }
     );
+
+// =========================================================
+// RECIPES
+// =========================================================
+
+let allRecipes = []; // Cache locally for lightning-fast search
+
+async function loadRecipes() {
+  const { data, error } = await supabaseClient
+    .from("recipes")
+    .select("*")
+    .order("title", { ascending: true });
+
+  if (error) {
+    console.error("Error loading recipes:", error);
+    return;
+  }
+
+  allRecipes = data;
+  renderRecipeCards(allRecipes);
+}
+
+// Live Search Filter
+document.getElementById("recipeSearch")?.addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
+  
+  const filtered = allRecipes.filter((recipe) => {
+    const titleMatch = recipe.title.toLowerCase().includes(query);
+    const ingredientMatch = recipe.ingredients.some((ing) => ing.toLowerCase().includes(query));
+    return titleMatch || ingredientMatch;
+  });
+
+  renderRecipeCards(filtered);
+});
+
+// Render Thumbnails Grid
+function renderRecipeCards(recipes) {
+  const container = document.getElementById("recipeGrid");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (recipes.length === 0) {
+    container.innerHTML = `<p class="empty-state">No recipes found.</p>`;
+    return;
+  }
+
+  recipes.forEach((recipe) => {
+    const card = document.createElement("div");
+    card.className = "recipe-card-thumb";
+    card.innerHTML = `
+      <h3>${escapeHtml(recipe.title)}</h3>
+      <p style="color: #64748b; font-size: 0.9em;">${recipe.category || 'General'} • ${recipe.cook_time || ''}</p>
+    `;
+
+    card.addEventListener("click", () => openRecipeDetail(recipe));
+    container.appendChild(card);
+  });
+}
+
+// Open 2-Section View
+function openRecipeDetail(recipe) {
+  document.getElementById("recipeGrid").classList.add("hidden");
+  document.getElementById("recipeDetail").classList.remove("hidden");
+
+  document.getElementById("detailTitle").textContent = recipe.title;
+  document.getElementById("detailMeta").textContent = 
+    `Prep: ${recipe.prep_time || 'N/A'} | Cook: ${recipe.cook_time || 'N/A'} | Serves: ${recipe.servings || 'N/A'}`;
+
+  // Render Ingredients List
+  const ingList = document.getElementById("detailIngredients");
+  ingList.innerHTML = recipe.ingredients
+    .map((ing) => `<li>${escapeHtml(ing)}</li>`)
+    .join("");
+
+  // Render Instructions List
+  const instList = document.getElementById("detailInstructions");
+  instList.innerHTML = recipe.instructions
+    .map((step) => `<li>${escapeHtml(step)}</li>`)
+    .join("");
+}
+
+// Back Button
+document.getElementById("closeRecipe")?.addEventListener("click", () => {
+  document.getElementById("recipeDetail").classList.add("hidden");
+  document.getElementById("recipeGrid").classList.remove("hidden");
+});
