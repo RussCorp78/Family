@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScanPulse - Offline QR & Barcode Reader</title>
+    
+    <!-- Local Offline JS Dependencies (No external CDN requests) -->
+    <script src="tailwindcss.js"></script>
+    <script src="html5-qrcode.min.js"></script>
+
+    <script>
+        // Custom Tailwind Configuration using local script
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif']
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    },
+                    animation: {
+                        'scan-line': 'scan 2s linear infinite',
+                    },
+                    keyframes: {
+                        scan: {
+                            '0%': { top: '0%' },
+                            '100%': { top: '100%' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Offline system font stack & custom scrollbar */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.5);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-xl shadow-lg shadow-brand-500/20">
+                    <!-- Inline SVG: QR Logo -->
+                    <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="5" height="5" x="3" y="3" rx="1"/>
+                        <rect width="5" height="5" x="16" y="3" rx="1"/>
+                        <rect width="5" height="5" x="3" y="16" rx="1"/>
+                        <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+                        <path d="M21 21v.01"/>
+                        <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+                        <path d="M3 12h.01"/>
+                        <path d="M12 3h.01"/>
+                        <path d="M12 16v.01"/>
+                        <path d="M16 12h1"/>
+                        <path d="M21 12v.01"/>
+                        <path d="M12 21v-1"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide text-white">ScanPulse</h1>
+                    <p class="text-xs text-slate-400">Offline QR & Barcode Scanner</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="btn-tab-scanner" onclick="switchTab('scanner')" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 bg-brand-500/10 text-brand-500 border border-brand-500/20">
+                    <!-- Inline SVG: Camera Icon -->
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                        <circle cx="12" cy="13" r="3"/>
+                    </svg>
+                    <span>Scanner</span>
+                </button>
+                <button id="btn-tab-history" onclick="switchTab('history')" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+                    <!-- Inline SVG: History Icon -->
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>History</span>
+                    <span id="history-badge" class="ml-1 px-1.5 py-0.5 text-xs bg-slate-800 text-slate-300 rounded-full font-mono">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-5xl mx-auto px-4 py-6 w-full flex-grow flex flex-col">
+
+        <!-- TAB 1: SCANNER VIEW -->
+        <div id="tab-scanner" class="space-y-6">
+            
+            <!-- Mode Selector Switcher (Live Camera vs Image Upload) -->
+            <div class="flex justify-center">
+                <div class="bg-slate-900 border border-slate-800 p-1 rounded-xl inline-flex space-x-1 shadow-inner">
+                    <button id="mode-camera-btn" onclick="setScanMode('camera')" class="px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition bg-slate-800 text-white shadow-sm">
+                        <!-- Inline SVG: Video Camera -->
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        <span>Live Camera</span>
+                    </button>
+                    <button id="mode-file-btn" onclick="setScanMode('file')" class="px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition text-slate-400 hover:text-white">
+                        <!-- Inline SVG: Image Upload -->
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span>Upload File</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- LIVE CAMERA CONTAINER -->
+            <div id="camera-container" class="relative max-w-md mx-auto w-full bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl transition-all">
+                
+                <!-- Video Stream Viewport -->
+                <div class="relative aspect-square w-full bg-black flex items-center justify-center overflow-hidden">
+                    <div id="reader" class="w-full h-full"></div>
+
+                    <!-- Overlay Box with Scanning Laser line -->
+                    <div id="scanner-overlay" class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                        <div class="w-64 h-64 border-2 border-brand-500/50 rounded-2xl relative shadow-[0_0_30px_rgba(34,197,94,0.15)] flex items-center justify-center overflow-hidden">
+                            <!-- Animated Scan Laser -->
+                            <div id="scan-line" class="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand-500 to-transparent shadow-[0_0_12px_#22c55e] animate-scan-line"></div>
+                            <!-- Corner Markers -->
+                            <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-brand-500 rounded-tl-lg"></div>
+                            <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-brand-500 rounded-tr-lg"></div>
+                            <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-brand-500 rounded-bl-lg"></div>
+                            <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-brand-500 rounded-br-lg"></div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-4 font-medium tracking-wide bg-slate-950/70 px-3 py-1 rounded-full backdrop-blur-sm border border-slate-800">Align code inside frame</p>
+                    </div>
+
+                    <!-- Success Flash Effect overlay -->
+                    <div id="flash-overlay" class="absolute inset-0 bg-brand-500/30 opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
+                    <!-- Camera Placeholder/Off State -->
+                    <div id="camera-off-state" class="hidden absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-6 text-center z-10">
+                        <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 text-slate-500">
+                            <!-- Inline SVG: Camera Off -->
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2 2l20 20M10.5 5h3L16 8h4a2 2 0 012 2v9a2 2 0 01-.586 1.414M8.5 8.5H4a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 001.414-.586M12 16a3 3 0 100-6 3 3 0 000 6z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-lg text-slate-200">Camera Paused</h3>
+                        <p class="text-sm text-slate-400 mt-1 max-w-xs">Start the camera stream or click resume to continue scanning codes.</p>
+                        <button onclick="startCamera()" class="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-slate-950 font-semibold rounded-xl text-sm transition flex items-center space-x-2">
+                            <!-- Inline SVG: Play Icon -->
+                            <svg class="w-4 h-4 fill-slate-950" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            <span>Start Camera</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Camera Controls Toolbar -->
+                <div class="p-4 bg-slate-900 border-t border-slate-800/80 flex items-center justify-around">
+                    <button id="toggle-camera-btn" onclick="toggleCameraPower()" title="Play/Pause Camera" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition hover:scale-105 active:scale-95">
+                        <span id="camera-power-icon">
+                            <!-- Inline SVG: Pause Icon -->
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </span>
+                    </button>
+                    <button id="switch-camera-btn" onclick="switchCameraFacingMode()" title="Switch Camera (Front/Back)" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition hover:scale-105 active:scale-95">
+                        <!-- Inline SVG: Switch Camera -->
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </button>
+                    <button id="torch-btn" onclick="toggleTorch()" title="Toggle Flashlight" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition opacity-50 cursor-not-allowed hover:scale-105 active:scale-95">
+                        <!-- Inline SVG: Flashlight Torch -->
+                        <svg id="torch-icon" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </button>
+                    <button onclick="playBeepSound()" title="Test Audio Feedback" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition hover:scale-105 active:scale-95">
+                        <!-- Inline SVG: Speaker/Volume -->
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FILE UPLOAD CONTAINER (Hidden by default) -->
+            <div id="file-container" class="hidden max-w-md mx-auto w-full">
+                <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-brand-500/50 bg-slate-900/50 hover:bg-slate-900/80 rounded-2xl p-8 text-center transition cursor-pointer flex flex-col items-center justify-center space-y-4 min-h-[320px]">
+                    <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                    <div class="p-4 bg-slate-800/80 text-brand-500 rounded-full shadow-inner">
+                        <!-- Inline SVG: Cloud Upload -->
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-base font-medium text-slate-200">Drag & drop your image here</p>
+                        <p class="text-xs text-slate-400 mt-1">Supports PNG, JPG, WEBP formats</p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('file-input').click()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl border border-slate-700 transition">
+                        Browse Image File
+                    </button>
+                </div>
+            </div>
+
+            <!-- Latest Scan Result Card -->
+            <div id="result-card" class="hidden max-w-md mx-auto w-full bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl transition-all">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                    <div class="flex items-center space-x-2">
+                        <span id="result-type-badge" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30 uppercase tracking-wider">QR_CODE</span>
+                        <span id="result-time" class="text-xs text-slate-500">Just now</span>
+                    </div>
+                    <button onclick="dismissResultCard()" class="text-slate-500 hover:text-slate-300 p-1 rounded-lg">
+                        <!-- Inline SVG: Close X -->
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 mb-4 break-all">
+                    <p id="result-text" class="font-mono text-sm text-slate-200 selection:bg-brand-500/30">https://example.com</p>
+                </div>
+
+                <!-- Action Button Matrix -->
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="copyResultText()" class="flex items-center justify-center space-x-1.5 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition">
+                        <!-- Inline SVG: Copy -->
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        <span>Copy</span>
+                    </button>
+                    <a id="btn-open-url" href="#" target="_blank" class="hidden flex items-center justify-center space-x-1.5 py-2 px-3 bg-brand-600 hover:bg-brand-500 text-slate-950 rounded-xl text-xs font-semibold transition">
+                        <!-- Inline SVG: External Link -->
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                        <span>Open Link</span>
+                    </a>
+                    <button onclick="searchWebResult()" class="flex items-center justify-center space-x-1.5 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition">
+                        <!-- Inline SVG: Search -->
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <span>Search</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: HISTORY VIEW (Hidden initially) -->
+        <div id="tab-history" class="hidden space-y-4">
+            
+            <!-- History Header & Controls -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                <!-- Search input -->
+                <div class="relative flex-grow max-w-md">
+                    <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="text" id="history-search" oninput="renderHistory()" placeholder="Search stored scan history..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500/50 transition">
+                </div>
+                <!-- Actions -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="exportHistory('csv')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition flex items-center space-x-1">
+                        <!-- Inline SVG: Download -->
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        <span>CSV</span>
+                    </button>
+                    <button onclick="exportHistory('json')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition flex items-center space-x-1">
+                        <!-- Inline SVG: JSON File -->
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>JSON</span>
+                    </button>
+                    <button onclick="clearHistory()" class="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-medium transition flex items-center space-x-1">
+                        <!-- Inline SVG: Trash -->
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        <span>Clear All</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- History List View -->
+            <div id="history-list" class="space-y-2.5">
+                <!-- Items populated dynamically by JavaScript -->
+            </div>
+
+            <!-- Empty History State -->
+            <div id="history-empty" class="hidden text-center py-12 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800">
+                <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-500">
+                    <!-- Inline SVG: Empty Inbox -->
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                    </svg>
+                </div>
+                <p class="text-slate-300 font-medium">No scan history recorded</p>
+                <p class="text-xs text-slate-500 mt-1">Codes you scan using live camera or uploads will appear here.</p>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-900/40 py-4 text-center text-xs text-slate-500">
+        <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p>ScanPulse Offline &copy; Client-side Scanner Engine.</p>
+            <p class="flex items-center space-x-1">
+                <span>Powered by</span>
+                <span class="font-mono text-slate-400">html5-qrcode</span>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 ease-out z-50 flex items-center space-x-2 px-4 py-3 bg-slate-800 border border-slate-700 text-slate-100 rounded-xl shadow-2xl pointer-events-none">
+        <span id="toast-icon">
+            <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </span>
+        <span id="toast-msg" class="text-sm font-medium">Notification message</span>
+    </div>
+
+    <script>
+        // Global Application State Variables
+        let html5QrCode = null;
+        let isCameraRunning = false;
+        let currentFacingMode = "environment"; // "user" or "environment"
+        let currentScanResult = null;
+        let torchEnabled = false;
+        let mediaTrack = null;
+        let scanHistory = JSON.parse(localStorage.getItem('scanpulse_history') || '[]');
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            updateHistoryBadge();
+            startCamera();
+            setupDragAndDrop();
+        });
+
+        // Toast Notification System
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.textContent = message;
+            
+            if (isError) {
+                toastIcon.innerHTML = `
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>`;
+            } else {
+                toastIcon.innerHTML = `
+                    <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>`;
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Web Audio API Beep Generator (100% Offline Audio)
+        function playBeepSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Pitch A5
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                console.warn('Audio playback error:', e);
+            }
+        }
+
+        // Start Live Camera Stream
+        async function startCamera() {
+            if (isCameraRunning) return;
+
+            document.getElementById('camera-off-state').classList.add('hidden');
+            document.getElementById('scanner-overlay').classList.remove('hidden');
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+
+            const config = {
+                fps: 15,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            try {
+                await html5QrCode.start(
+                    { facingMode: currentFacingMode },
+                    config,
+                    onScanSuccess,
+                    onScanFailure
+                );
+                
+                isCameraRunning = true;
+                updateCameraPowerIcon();
+                checkTorchCapability();
+
+            } catch (err) {
+                console.error("Error starting camera:", err);
+                document.getElementById('camera-off-state').classList.remove('hidden');
+                document.getElementById('scanner-overlay').classList.add('hidden');
+                showToast("Could not access camera", true);
+            }
+        }
+
+        // Stop Camera Stream
+        async function stopCamera() {
+            if (html5QrCode && isCameraRunning) {
+                try {
+                    await html5QrCode.stop();
+                    isCameraRunning = false;
+                    torchEnabled = false;
+                    mediaTrack = null;
+                    updateTorchIcon();
+                    updateCameraPowerIcon();
+                    document.getElementById('camera-off-state').classList.remove('hidden');
+                    document.getElementById('scanner-overlay').classList.add('hidden');
+                } catch (err) {
+                    console.error("Failed to stop camera:", err);
+                }
+            }
+        }
+
+        // Toggle Camera Power
+        function toggleCameraPower() {
+            if (isCameraRunning) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        }
+
+        function updateCameraPowerIcon() {
+            const iconContainer = document.getElementById('camera-power-icon');
+            if (isCameraRunning) {
+                iconContainer.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>`;
+            } else {
+                iconContainer.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>`;
+            }
+        }
+
+        // Switch Camera (Front vs Rear Facing Mode)
+        async function switchCameraFacingMode() {
+            currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+            if (isCameraRunning) {
+                await stopCamera();
+                await startCamera();
+            }
+            showToast(`Switched to ${currentFacingMode === 'user' ? 'front' : 'rear'} camera`);
+        }
+
+        // Flashlight / Torch Control
+        async function checkTorchCapability() {
+            const torchBtn = document.getElementById('torch-btn');
+            try {
+                const videoEl = document.querySelector('#reader video');
+                if (videoEl && videoEl.srcObject) {
+                    const stream = videoEl.srcObject;
+                    const tracks = stream.getVideoTracks();
+                    if (tracks.length > 0) {
+                        mediaTrack = tracks[0];
+                        const capabilities = mediaTrack.getCapabilities ? mediaTrack.getCapabilities() : {};
+                        if (capabilities.torch) {
+                            torchBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            torchBtn.removeAttribute('disabled');
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("Torch capabilities check error:", e);
+            }
+            torchBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            torchBtn.setAttribute('disabled', 'true');
+        }
+
+        async function toggleTorch() {
+            if (!mediaTrack) return;
+            try {
+                torchEnabled = !torchEnabled;
+                await mediaTrack.applyConstraints({
+                    advanced: [{ torch: torchEnabled }]
+                });
+                updateTorchIcon();
+            } catch (e) {
+                console.error("Torch toggle failed:", e);
+                showToast("Flashlight not supported", true);
+            }
+        }
+
+        function updateTorchIcon() {
+            const torchBtn = document.getElementById('torch-btn');
+            if (torchEnabled) {
+                torchBtn.classList.add('bg-brand-500/20', 'text-brand-400', 'border', 'border-brand-500/30');
+            } else {
+                torchBtn.classList.remove('bg-brand-500/20', 'text-brand-400', 'border', 'border-brand-500/30');
+            }
+        }
+
+        // Successful Code Scan Callback
+        function onScanSuccess(decodedText, decodedResult) {
+            // Visual Flash Effect
+            const flash = document.getElementById('flash-overlay');
+            flash.classList.remove('opacity-0');
+            flash.classList.add('opacity-100');
+            setTimeout(() => {
+                flash.classList.remove('opacity-100');
+                flash.classList.add('opacity-0');
+            }, 200);
+
+            // Audio Feedback
+            playBeepSound();
+
+            const format = decodedResult.result.format ? decodedResult.result.format.formatName : "QR_CODE";
+            processScannedResult(decodedText, format);
+        }
+
+        function onScanFailure(error) {
+            // Quiet failure expected on continuous frame scanner
+        }
+
+        // Process Scan Results
+        function processScannedResult(text, formatName) {
+            currentScanResult = {
+                text: text,
+                format: formatName,
+                timestamp: new Date().toISOString()
+            };
+
+            // Display in result card
+            document.getElementById('result-text').textContent = text;
+            document.getElementById('result-type-badge').textContent = formatName;
+            document.getElementById('result-card').classList.remove('hidden');
+
+            // Handle URL button
+            const openUrlBtn = document.getElementById('btn-open-url');
+            if (isValidUrl(text)) {
+                openUrlBtn.href = text;
+                openUrlBtn.classList.remove('hidden');
+            } else {
+                openUrlBtn.classList.add('hidden');
+            }
+
+            // Save to history list
+            saveToHistory(currentScanResult);
+        }
+
+        function dismissResultCard() {
+            document.getElementById('result-card').classList.add('hidden');
+        }
+
+        function isValidUrl(string) {
+            try {
+                const url = new URL(string);
+                return url.protocol === "http:" || url.protocol === "https:";
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // File Scan Fallback Implementation
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('border-brand-500'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-brand-500'), false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    scanFile(files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                scanFile(files[0]);
+            }
+        }
+
+        async function scanFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast('Please upload an image file', true);
+                return;
+            }
+
+            const scanner = new Html5Qrcode("reader");
+            try {
+                const result = await scanner.scanFile(file, true);
+                playBeepSound();
+                processScannedResult(result, 'IMAGE_FILE');
+                showToast('Code successfully scanned from file!');
+            } catch (err) {
+                console.error("File scanning error:", err);
+                showToast('No readable code detected in image', true);
+            }
+        }
+
+        // Mode Switching (Live Camera vs Upload File)
+        function setScanMode(mode) {
+            const camContainer = document.getElementById('camera-container');
+            const fileContainer = document.getElementById('file-container');
+            const camBtn = document.getElementById('mode-camera-btn');
+            const fileBtn = document.getElementById('mode-file-btn');
+
+            if (mode === 'camera') {
+                camContainer.classList.remove('hidden');
+                fileContainer.classList.add('hidden');
+
+                camBtn.className = "px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition bg-slate-800 text-white shadow-sm";
+                fileBtn.className = "px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition text-slate-400 hover:text-white";
+
+                startCamera();
+            } else {
+                camContainer.classList.add('hidden');
+                fileContainer.classList.remove('hidden');
+
+                fileBtn.className = "px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition bg-slate-800 text-white shadow-sm";
+                camBtn.className = "px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition text-slate-400 hover:text-white";
+
+                stopCamera();
+            }
+        }
+
+        // Actions: Copy & Search
+        function copyResultText() {
+            if (!currentScanResult) return;
+            copyToClipboard(currentScanResult.text);
+        }
+
+        function copyToClipboard(text) {
+            // Safe execCommand fallback for sandbox iframe environment
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast("Copied to clipboard!");
+            } catch (err) {
+                showToast("Failed to copy text", true);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function searchWebResult() {
+            if (!currentScanResult) return;
+            const query = encodeURIComponent(currentScanResult.text);
+            window.open(`https://www.google.com/search?q=${query}`, '_blank');
+        }
+
+        // Local Storage & Dynamic History List Rendering
+        function saveToHistory(item) {
+            if (scanHistory.length > 0 && scanHistory[0].text === item.text && (new Date(item.timestamp) - new Date(scanHistory[0].timestamp)) < 5000) {
+                return;
+            }
+
+            scanHistory.unshift(item);
+            if (scanHistory.length > 100) scanHistory.pop();
+
+            localStorage.setItem('scanpulse_history', JSON.stringify(scanHistory));
+            updateHistoryBadge();
+            renderHistory();
+        }
+
+        function updateHistoryBadge() {
+            document.getElementById('history-badge').textContent = scanHistory.length;
+        }
+
+        function renderHistory() {
+            const listEl = document.getElementById('history-list');
+            const emptyEl = document.getElementById('history-empty');
+            const searchQuery = (document.getElementById('history-search').value || '').toLowerCase();
+
+            listEl.innerHTML = '';
+
+            const filtered = scanHistory.filter(item => 
+                item.text.toLowerCase().includes(searchQuery) || 
+                item.format.toLowerCase().includes(searchQuery)
+            );
+
+            if (filtered.length === 0) {
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+
+            emptyEl.classList.add('hidden');
+
+            filtered.forEach((item, index) => {
+                const isUrl = isValidUrl(item.text);
+                const dateFormatted = new Date(item.timestamp).toLocaleString();
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 hover:border-slate-700 p-3.5 rounded-xl flex items-center justify-between gap-3 transition group";
+
+                const iconSvg = isUrl ? 
+                    `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>` : 
+                    `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-16v16M4 4v16m4-16v16m8-16v16"/></svg>`;
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3 overflow-hidden">
+                        <div class="p-2.5 bg-slate-800 group-hover:bg-brand-500/10 group-hover:text-brand-400 text-slate-400 rounded-lg transition shrink-0">
+                            ${iconSvg}
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700 uppercase">${item.format}</span>
+                                <span class="text-xs text-slate-500">${dateFormatted}</span>
+                            </div>
+                            <p class="text-sm font-mono text-slate-200 truncate mt-0.5">${escapeHtml(item.text)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1 shrink-0">
+                        <button onclick="copyToClipboard('${escapeJsString(item.text)}')" title="Copy" class="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        </button>
+                        ${isUrl ? `
+                        <a href="${escapeHtml(item.text)}" target="_blank" title="Open Link" class="p-2 text-brand-400 hover:bg-brand-500/10 rounded-lg transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </a>` : ''}
+                        <button onclick="deleteHistoryItem(${index})" title="Delete" class="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        function deleteHistoryItem(index) {
+            scanHistory.splice(index, 1);
+            localStorage.setItem('scanpulse_history', JSON.stringify(scanHistory));
+            updateHistoryBadge();
+            renderHistory();
+            showToast("Item removed");
+        }
+
+        function clearHistory() {
+            if (scanHistory.length === 0) return;
+            scanHistory = [];
+            localStorage.setItem('scanpulse_history', JSON.stringify(scanHistory));
+            updateHistoryBadge();
+            renderHistory();
+            showToast("History cleared");
+        }
+
+        // Export History Options
+        function exportHistory(format) {
+            if (scanHistory.length === 0) {
+                showToast("No data to export", true);
+                return;
+            }
+
+            let dataStr = "";
+            let mimeType = "";
+            let filename = `scan_history_${new Date().toISOString().slice(0,10)}`;
+
+            if (format === 'json') {
+                dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(scanHistory, null, 2));
+                mimeType = "application/json";
+                filename += ".json";
+            } else if (format === 'csv') {
+                const headers = ["Timestamp", "Format", "Content"];
+                const rows = scanHistory.map(item => [
+                    `"${item.timestamp}"`,
+                    `"${item.format}"`,
+                    `"${item.text.replace(/"/g, '""')}"`
+                ]);
+                const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+                dataStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+                mimeType = "text/csv";
+                filename += ".csv";
+            }
+
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", filename);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+
+            showToast(`Exported history as ${format.toUpperCase()}`);
+        }
+
+        // Navigation Tab Switching
+        function switchTab(tabName) {
+            const scannerTab = document.getElementById('tab-scanner');
+            const historyTab = document.getElementById('tab-history');
+            const scannerBtn = document.getElementById('btn-tab-scanner');
+            const historyBtn = document.getElementById('btn-tab-history');
+
+            if (tabName === 'scanner') {
+                scannerTab.classList.remove('hidden');
+                historyTab.classList.add('hidden');
+
+                scannerBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 bg-brand-500/10 text-brand-500 border border-brand-500/20";
+                historyBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+
+                startCamera();
+            } else {
+                scannerTab.classList.add('hidden');
+                historyTab.classList.remove('hidden');
+
+                historyBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 bg-brand-500/10 text-brand-500 border border-brand-500/20";
+                scannerBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+
+                stopCamera();
+                renderHistory();
+            }
+        }
+
+        // Utilities
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function escapeJsString(str) {
+            return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+    </script>
+</body>
+</html>
