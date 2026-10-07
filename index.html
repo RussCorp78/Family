@@ -1,404 +1,229 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScanPulse - QR & Barcode Scanner</title>
-  <!-- Local Tailwind CSS Script -->
-  <script src="tailwindcss.js"></script>
-  <!-- Local HTML5-QRCode Engine Script -->
-  <script src="html5-qrcode.min.js"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#f0fdf4',
-              500: '#22c55e',
-              600: '#16a34a',
-              700: '#15803d',
-            }
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-    #reader video {
-      object-fit: cover !important;
-      border-radius: 0.75rem;
-    }
-    /* Animated Green Laser Scan Line */
-    @keyframes scan {
-      0% { top: 5%; opacity: 0.2; }
-      50% { opacity: 1; }
-      100% { top: 90%; opacity: 0.2; }
-    }
-    .scan-laser {
-      position: absolute;
-      left: 10%;
-      right: 10%;
-      height: 2px;
-      background: #22c55e;
-      box-shadow: 0 0 12px 2px #22c55e;
-      animation: scan 2s linear infinite alternate;
-      z-index: 10;
-      pointer-events: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Home</title>
+    <link rel="stylesheet" href="style.css">
+
+<!-- =====================================================
+SUPABASE LINK
+===================================================== -->
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
 
-  <!-- Header -->
-  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
-    <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="p-2 bg-brand-500/10 text-brand-500 rounded-lg">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/>
-            <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/>
-            <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/>
-            <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 18h3v3h-3zM18 14h3v3h-3z" fill="currentColor"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="font-bold text-lg leading-none">ScanPulse</h1>
-          <p class="text-xs text-slate-400 mt-0.5">Offline Scanner</p>
-        </div>
-      </div>
+<body>
 
-      <div class="flex items-center gap-2">
-        <button id="tabScanner" onclick="switchTab('scanner')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-500/20 text-brand-500 border border-brand-500/30 transition-all">
-          Scanner
-        </button>
-        <button id="tabHistory" onclick="switchTab('history')" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all flex items-center gap-1.5">
-          <span>History</span>
-          <span id="historyBadge" class="bg-slate-800 text-xs px-1.5 py-0.5 rounded-full font-mono">0</span>
-        </button>
-      </div>
+<!-- =====================================================
+LOGIN SCREEN
+===================================================== -->
+    
+<section id="loginScreen" class="screen">
+    <div class="login-box">
+        <h1>Our Home</h1>
+        <p class="subtitle"> Private Russell family dashboard </p>
+            <form id="loginForm">
+                <label for="email">Email</label>
+                <input type="email" id="email" autocomplete="email" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" autocomplete="current-password" required>
+                <button type="submit"> Sign in </button>
+            </form>
+        <p id="loginMessage" class="message"></p>
     </div>
-  </header>
+</section>
 
-  <main class="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6">
+<!-- =====================================================
+HOLDING SCREEN
+===================================================== -->
+    
+<section id="holdingScreen" class="screen hidden">
+    <div class="holding-box">
+    <div class="lock">🔒</div>
+        <h1>Private</h1>
+            <p>
+            This account isn't authorised to use
+            this family dashboard.
+            </p>
+        <button id="holdingSignOut"> Sign out </button>
+    </div>
+</section>
 
-    <!-- TAB 1: SCANNER -->
-    <div id="viewScanner" class="flex flex-col gap-6">
-      
-      <!-- Mode Toggle -->
-      <div class="flex justify-center">
-        <div class="bg-slate-900 p-1 rounded-xl border border-slate-800 flex gap-1">
-          <button id="btnModeLive" onclick="setMode('live')" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-white shadow-sm transition-all flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-            Live Camera
-          </button>
-          <button id="btnModeUpload" onclick="setMode('upload')" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            Upload File
-          </button>
+<!-- =====================================================
+MAIN APP
+===================================================== -->
+    
+<main id="appScreen" class="hidden">
+    <header class="app-header">
+        <div id="welcome"></div>
+        <div class="header-actions">
+            <button id="showPasswordForm" type="button"> Change Password</button>
+            <button id="signOut" type="button"> Sign Out </button>
         </div>
-      </div>
+    </header>
 
-      <!-- Live Camera Viewport -->
-      <div id="sectionLive" class="relative bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl max-w-md mx-auto w-full aspect-square flex flex-col justify-center items-center">
-        
-        <!-- Scanner Frame & Laser Overlay -->
-        <div id="scannerOverlay" class="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-          <div class="relative w-64 h-64 border-2 border-brand-500/50 rounded-2xl">
-            <div id="laserLine" class="scan-laser"></div>
-          </div>
-        </div>
-
-        <div id="reader" class="w-full h-full"></div>
-        
-        <!-- Camera Controls overlay -->
-        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md border border-slate-700/50 rounded-full px-4 py-2 flex items-center gap-4 z-20">
-          
-          <!-- Pause/Play Toggle Button -->
-          <button id="pauseBtn" onclick="togglePause()" title="Pause / Resume Camera" class="text-slate-300 hover:text-white p-1 transition-colors">
-            <svg id="pauseIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <svg id="playIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </button>
-
-          <!-- Flip Camera Button -->
-          <button onclick="flipCamera()" title="Flip Camera" class="text-slate-300 hover:text-white p-1 transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          </button>
-
-        </div>
-      </div>
-
-      <!-- File Upload Container -->
-      <div id="sectionUpload" class="hidden max-w-md mx-auto w-full">
-        <label for="qrFileInput" class="border-2 border-dashed border-slate-700 hover:border-brand-500/50 bg-slate-900/50 hover:bg-slate-900 transition-all rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer group text-center aspect-square">
-          <div class="p-4 bg-slate-800 rounded-full group-hover:scale-110 transition-transform">
-            <svg class="w-8 h-8 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          </div>
-          <div>
-            <p class="font-medium text-slate-200">Click or drag image to scan</p>
-            <p class="text-xs text-slate-400 mt-1">PNG, JPG, WEBP formats supported</p>
-          </div>
-          <input type="file" id="qrFileInput" accept="image/*" class="hidden" onchange="scanImageFile(this)">
-        </label>
-      </div>
-
-      <!-- Result Card -->
-      <div id="resultCard" class="hidden max-w-md mx-auto w-full bg-slate-900 border border-brand-500/30 rounded-2xl p-4 flex flex-col gap-3 shadow-lg">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-500 uppercase tracking-wider" id="resultType">
-            Barcode
-          </span>
-          <span class="text-xs text-slate-400" id="resultTime">Just now</span>
-        </div>
-        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 break-all font-mono text-sm text-slate-200" id="resultText">
-          ---
-        </div>
-        <div class="flex gap-2">
-          <button onclick="copyResult()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-            Copy
-          </button>
-          <a id="resultUrlBtn" href="#" target="_blank" class="hidden flex-1 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-            Open Link
-          </a>
-        </div>
-      </div>
-
+    <div id="passwordFormContainer" class="password-form-container hidden">
+        <form id="passwordForm">
+            <h2>Change Password</h2>
+            <label for="newPassword"> New password </label>
+            <input type="password" id="newPassword" autocomplete="new-password" minlength="8" required>
+            <label for="confirmPassword"> Confirm new password </label>
+            <input type="password" id="confirmPassword" autocomplete="new-password" minlength="8" required>
+              <div id="passwordMessage" class="password-message"> </div>
+                <div class="password-buttons">
+                    <button type="submit" class="primary-button"> Change Password </button>
+                    <button type="button" id="cancelPassword" class="secondary-button"> Cancel </button>
+                </div>
+        </form>
     </div>
 
-    <!-- TAB 2: HISTORY -->
-    <div id="viewHistory" class="hidden flex-col gap-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-bold">Scan History</h2>
-        <button onclick="clearHistory()" class="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          Clear History
-        </button>
-      </div>
-      <div id="historyList" class="flex flex-col gap-3">
-        <!-- History items dynamically populated here -->
-      </div>
+<!-- =====================================================
+NAVIGATION
+===================================================== -->
+   
+    <nav class="nav-bar">
+        <button class="nav-button" data-section="todosSection"> To Do </button>  
+        <button class="nav-button" data-section="shoppingSection"> Shopping </button>  
+        <button class="nav-button" data-section="calendarSection"> Calendar </button>
+        <button class="nav-button" data-section="recipeSection">Recipes</button>
+    </nav>
+
+<!-- =================================================
+TODO SECTION
+================================================= -->
+
+<section id="todosSection" class="app-section">
+    <div class="section-header">
+        <h2>To Do</h2>
+        <button id="showTodoForm"> + Add </button>
+    </div>
+    <form id="todoForm" class="entry-form hidden">
+        <input type="text" id="todoTitle" placeholder="What needs doing?" required>
+        <input type="date" id="todoDate">
+        <textarea id="todoNotes" placeholder="Notes (optional)"> </textarea>
+        <div class="form-buttons">
+            <button type="submit"> Add </button>
+            <button type="button" id="cancelTodo"> Cancel </button>
+        </div>
+    </form>
+    <div id="todoList"></div>
+</section>
+
+<!-- =================================================
+SHOPPING LIST SECTION
+================================================= -->
+
+<section id="shoppingSection" class="app-section hidden">
+    <div class="section-header">
+          <h2>Shopping List</h2>
+          <button id="showShoppingForm" class="primary-button"> + Add Item </button>
+    </div>
+  <form id ="shoppingForm" class="entry-form hidden"> 
+        <input type ="text" id="shoppingTitle" placeholder="What do you need?" required>
+        <button type="submit" class="primary-button"> Add </button>  
+    <button type="button" id="cancelShopping" class="secondary-button"> Cancel </button>
+  </form>
+  <div id="shoppingList"></div>
+</section>
+
+<!-- =================================================
+CALENDAR SECTION
+================================================= -->
+
+<section id="calendarSection" class="app-section hidden">
+    <div class="section-header">
+        <h2>Calendar</h2>
+        <button id="refreshCalendar">🔄 Refresh</button>
+    </div>
+    
+  <!-- TODAY'S EVENTS -->
+  <div class="calendar-group">
+    <h3>Today</h3>
+    <div id="calendarTodayList" class="calendar-sublist"></div>
+  </div>
+
+  <!-- UPCOMING EVENTS -->
+  <div class="calendar-group">
+    <h3>Upcoming (Next 7 Days)</h3>
+    <div id="calendarUpcomingList" class="calendar-sublist"></div>
+  </div>
+</section>
+
+<!-- =================================================
+RECIPE SECTION
+================================================= -->
+
+<section id="recipeSection" class="app-section hidden">
+      <div class="recipe-header">
+        <h2>Recipe Collection</h2>
+        <button id="showRecipeForm" class="primary-button">+ Add Recipe</button>
     </div>
 
-  </main>
+<!-- ADD RECIPE FORM -->
+<form id="recipeForm" class="entry-form hidden">
+  <input type="text" id="recipeTitle" placeholder="Recipe Title" required />
+  
+  <div class="form-row" style="display: flex; gap: 8px; margin: 8px 0;">
+    <input type="text" id="recipeCategory" placeholder="Category (e.g. Dinner, Baking)" />
+    <input type="text" id="recipePrep" placeholder="Prep Time (e.g. 15 mins)" />
+    <input type="text" id="recipeCook" placeholder="Cook Time (e.g. 30 mins)" />
+  </div>
 
-  <script>
-    let html5QrCode = null;
-    let currentCameraId = null;
-    let cameraList = [];
-    let isPaused = false;
-    let scanHistory = JSON.parse(localStorage.getItem('scan_history') || '[]');
+  <label for="recipeIngredients">Ingredients (one per line):</label>
+  <textarea id="recipeIngredients" rows="5" placeholder="500g minced beef&#10;1 diced onion&#10;2 cloves garlic" required></textarea>
 
-    window.addEventListener('DOMContentLoaded', () => {
-      updateHistoryUI();
-      startCamera();
-    });
+  <label for="recipeInstructions">Instructions (one step per line):</label>
+  <textarea id="recipeInstructions" rows="5" placeholder="Sauté onion and garlic.&#10;Add beef and brown.&#10;Simmer with tomatoes." required></textarea>
 
-    async function startCamera() {
-      if (typeof Html5Qrcode === 'undefined') {
-        console.error("Html5Qrcode library not loaded properly.");
-        return;
-      }
+  <div class="form-buttons" style="margin-top: 10px;">
+    <button type="submit" class="primary-button">Save Recipe</button>
+    <button type="button" id="cancelRecipe" class="secondary-button">Cancel</button>
+  </div>
+</form>
+    
+    <div class="search-box" style="margin-top: 15px;">
+      <input type="text" id="recipeSearch" placeholder="Search recipes or ingredients..." />
+      <select id="categoryFilter">
+        <option value="">All Categories</option>
+        <option value="Dinner">Dinner</option>
+        <option value="Lunch">Lunch</option>
+        <option value="Baking">Baking</option>
+      </select>
+    </div>
+  </div>
 
-      if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader");
-      }
+  <div id="recipeGrid" class="recipe-grid">
+    <!-- Search results / Recipe Cards will load here -->
+  </div>
 
-      try {
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length > 0) {
-          cameraList = devices;
-          currentCameraId = devices[devices.length - 1].id;
-          
-          await html5QrCode.start(
-            currentCameraId,
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            onScanSuccess,
-            onScanError
-          );
-        }
-      } catch (err) {
-        console.warn("Camera failed to start automatically:", err);
-      }
-    }
+  <!-- Detailed Recipe Modal / View -->
+  <div id="recipeDetail" class="recipe-detail-container hidden">
+    <button id="closeRecipe" class="close-btn">&larr; Back to search</button>
+    <div class="recipe-card-full">
+      <h1 id="detailTitle"></h1>
+      <div class="recipe-meta" id="detailMeta"></div>
 
-    function onScanSuccess(decodedText, decodedResult) {
-      if (isPaused) return;
-      playBeep();
-      displayResult(decodedText, decodedResult.resultFormat?.formatName || 'Scanned Code');
-      saveToHistory(decodedText, decodedResult.resultFormat?.formatName || 'Scanned Code');
-    }
-
-    function onScanError(errorMessage) {
-      // Ignored for continuous scanning
-    }
-
-    function togglePause() {
-      if (!html5QrCode) return;
-      
-      const pauseIcon = document.getElementById('pauseIcon');
-      const playIcon = document.getElementById('playIcon');
-      const laserLine = document.getElementById('laserLine');
-
-      if (!isPaused) {
-        html5QrCode.pause();
-        isPaused = true;
-        pauseIcon.classList.add('hidden');
-        playIcon.classList.remove('hidden');
-        laserLine.style.animationPlayState = 'paused';
-      } else {
-        html5QrCode.resume();
-        isPaused = false;
-        playIcon.classList.add('hidden');
-        pauseIcon.classList.remove('hidden');
-        laserLine.style.animationPlayState = 'running';
-      }
-    }
-
-    async function flipCamera() {
-      if (!html5QrCode || cameraList.length < 2) return;
-      await html5QrCode.stop();
-      const currentIndex = cameraList.findIndex(c => c.id === currentCameraId);
-      const nextIndex = (currentIndex + 1) % cameraList.length;
-      currentCameraId = cameraList[nextIndex].id;
-      
-      await html5QrCode.start(
-        currentCameraId,
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        onScanSuccess,
-        onScanError
-      );
-    }
-
-    function displayResult(text, format) {
-      const card = document.getElementById('resultCard');
-      const textElem = document.getElementById('resultText');
-      const typeElem = document.getElementById('resultType');
-      const urlBtn = document.getElementById('resultUrlBtn');
-
-      textElem.textContent = text;
-      typeElem.textContent = format;
-      card.classList.remove('hidden');
-
-      if (text.startsWith('http://') || text.startsWith('https://')) {
-        urlBtn.href = text;
-        urlBtn.classList.remove('hidden');
-      } else {
-        urlBtn.classList.add('hidden');
-      }
-    }
-
-    function copyResult() {
-      const text = document.getElementById('resultText').textContent;
-      navigator.clipboard.writeText(text);
-      alert('Copied to clipboard!');
-    }
-
-    function playBeep() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.value = 880;
-        gain.gain.value = 0.1;
-        osc.start();
-        osc.stop(ctx.currentTime + 0.15);
-      } catch (e) {}
-    }
-
-    function switchTab(tab) {
-      const vScanner = document.getElementById('viewScanner');
-      const vHistory = document.getElementById('viewHistory');
-      const tabS = document.getElementById('tabScanner');
-      const tabH = document.getElementById('tabHistory');
-
-      if (tab === 'scanner') {
-        vScanner.classList.remove('hidden');
-        vHistory.classList.add('hidden');
-        tabS.className = "px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-500/20 text-brand-500 border border-brand-500/30 transition-all";
-        tabH.className = "px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5";
-      } else {
-        vScanner.classList.add('hidden');
-        vHistory.classList.remove('hidden');
-        tabH.className = "px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-500/20 text-brand-500 border border-brand-500/30 transition-all flex items-center gap-1.5";
-        tabS.className = "px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 transition-all";
-      }
-    }
-
-    function setMode(mode) {
-      const secLive = document.getElementById('sectionLive');
-      const secUpload = document.getElementById('sectionUpload');
-      const btnL = document.getElementById('btnModeLive');
-      const btnU = document.getElementById('btnModeUpload');
-
-      if (mode === 'live') {
-        secLive.classList.remove('hidden');
-        secUpload.classList.add('hidden');
-        btnL.className = "px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-white shadow-sm transition-all flex items-center gap-2";
-        btnU.className = "px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2";
-        startCamera();
-      } else {
-        secLive.classList.add('hidden');
-        secUpload.classList.remove('hidden');
-        btnU.className = "px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-white shadow-sm transition-all flex items-center gap-2";
-        btnL.className = "px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2";
-        if (html5QrCode) html5QrCode.stop();
-      }
-    }
-
-    async function scanImageFile(input) {
-      if (!input.files || input.files.length === 0) return;
-      const file = input.files[0];
-      const scanner = new Html5Qrcode("reader");
-      try {
-        const result = await scanner.scanFile(file, true);
-        onScanSuccess(result, { resultFormat: { formatName: 'Image Scan' } });
-      } catch (err) {
-        alert("No clear barcode/QR code found in this image.");
-      }
-    }
-
-    function saveToHistory(text, type) {
-      const item = { text, type, time: new Date().toLocaleTimeString() };
-      scanHistory.unshift(item);
-      localStorage.setItem('scan_history', JSON.stringify(scanHistory));
-      updateHistoryUI();
-    }
-
-    function updateHistoryUI() {
-      const badge = document.getElementById('historyBadge');
-      const list = document.getElementById('historyList');
-      badge.textContent = scanHistory.length;
-
-      if (scanHistory.length === 0) {
-        list.innerHTML = `<div class="text-center py-8 text-slate-500 text-sm">No scans saved yet.</div>`;
-        return;
-      }
-
-      list.innerHTML = scanHistory.map(item => `
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-1">
-          <div class="flex items-center justify-between text-xs text-slate-400">
-            <span class="font-semibold text-brand-500">${item.type}</span>
-            <span>${item.time}</span>
-          </div>
-          <div class="font-mono text-sm text-slate-200 break-all">${item.text}</div>
+      <!-- 2-SECTION DISPLAY -->
+      <div class="recipe-two-columns">
+        <div class="ingredients-section">
+          <h3>Ingredients</h3>
+          <ul id="detailIngredients"></ul>
         </div>
-      `).join('');
-    }
 
-    function clearHistory() {
-      scanHistory = [];
-      localStorage.removeItem('scan_history');
-      updateHistoryUI();
-    }
-  </script>
+        <div class="instructions-section">
+          <h3>Instructions</h3>
+          <ol id="detailInstructions"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<script src="script.js"></script>
+
 </body>
+    
 </html>
