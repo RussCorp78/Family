@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Pro - QR & Barcode Reader</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    },
+                    animation: {
+                        'scan-line': 'scan 2s linear infinite',
+                        'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        scan: {
+                            '0%': { top: '0%' },
+                            '100%': { top: '100%' }
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { opacity: '0.4' },
+                            '50%': { opacity: '0.8' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- html5-qrcode Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        /* Custom scrollbar for history */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.5);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-xl shadow-lg shadow-brand-500/20">
+                    <i data-lucide="qr-code" class="w-6 h-6 text-slate-950 stroke-[2.5]"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide text-white">ScanPulse</h1>
+                    <p class="text-xs text-slate-400">QR & Barcode Scanner</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="btn-tab-scanner" onclick="switchTab('scanner')" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 bg-brand-500/10 text-brand-500 border border-brand-500/20">
+                    <i data-lucide="camera" class="w-4 h-4"></i>
+                    <span>Scanner</span>
+                </button>
+                <button id="btn-tab-history" onclick="switchTab('history')" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+                    <i data-lucide="history" class="w-4 h-4"></i>
+                    <span>History</span>
+                    <span id="history-badge" class="ml-1 px-1.5 py-0.5 text-xs bg-slate-800 text-slate-300 rounded-full font-mono">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-5xl mx-auto px-4 py-6 w-full flex-grow flex flex-col">
+
+        <!-- TAB 1: SCANNER VIEW -->
+        <div id="tab-scanner" class="space-y-6">
+            
+            <!-- Mode Selector Switcher (Live Camera vs Image Upload) -->
+            <div class="flex justify-center">
+                <div class="bg-slate-900 border border-slate-800 p-1 rounded-xl inline-flex space-x-1 shadow-inner">
+                    <button id="mode-camera-btn" onclick="setScanMode('camera')" class="px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition bg-slate-800 text-white shadow-sm">
+                        <i data-lucide="video" class="w-4 h-4"></i>
+                        <span>Live Camera</span>
+                    </button>
+                    <button id="mode-file-btn" onclick="setScanMode('file')" class="px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition text-slate-400 hover:text-white">
+                        <i data-lucide="image" class="w-4 h-4"></i>
+                        <span>Upload File</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- LIVE CAMERA CONTAINER -->
+            <div id="camera-container" class="relative max-w-md mx-auto w-full bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl transition-all">
+                
+                <!-- Video Stream Viewport -->
+                <div class="relative aspect-square w-full bg-black flex items-center justify-center overflow-hidden">
+                    <div id="reader" class="w-full h-full"></div>
+
+                    <!-- Overlay Box with Scanning Laser line -->
+                    <div id="scanner-overlay" class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                        <div class="w-64 h-64 border-2 border-brand-500/50 rounded-2xl relative shadow-[0_0_30px_rgba(34,197,94,0.15)] flex items-center justify-center overflow-hidden">
+                            <!-- Animated Scan Laser -->
+                            <div id="scan-line" class="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand-500 to-transparent shadow-[0_0_12px_#22c55e] animate-scan-line"></div>
+                            <!-- Corner Markers -->
+                            <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-brand-500 rounded-tl-lg"></div>
+                            <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-brand-500 rounded-tr-lg"></div>
+                            <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-brand-500 rounded-bl-lg"></div>
+                            <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-brand-500 rounded-br-lg"></div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-4 font-medium tracking-wide bg-slate-950/70 px-3 py-1 rounded-full backdrop-blur-sm border border-slate-800">Align code inside frame</p>
+                    </div>
+
+                    <!-- Success Flash Effect overlay -->
+                    <div id="flash-overlay" class="absolute inset-0 bg-brand-500/30 opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
+                    <!-- Camera Placeholder/Off State -->
+                    <div id="camera-off-state" class="hidden absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-6 text-center z-10">
+                        <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 text-slate-500">
+                            <i data-lucide="camera-off" class="w-8 h-8"></i>
+                        </div>
+                        <h3 class="font-semibold text-lg text-slate-200">Camera Paused</h3>
+                        <p class="text-sm text-slate-400 mt-1 max-w-xs">Start the camera stream or click resume to continue scanning codes.</p>
+                        <button onclick="startCamera()" class="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-slate-950 font-semibold rounded-xl text-sm transition flex items-center space-x-2">
+                            <i data-lucide="play" class="w-4 h-4 fill-slate-950"></i>
+                            <span>Start Camera</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Camera Controls Toolbar -->
+                <div class="p-4 bg-slate-900 border-t border-slate-800/80 flex items-center justify-around">
+                    <button id="toggle-camera-btn" onclick="toggleCameraPower()" title="Play/Pause Camera" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition hover:scale-105 active:scale-95">
+                        <i id="camera-power-icon" data-lucide="pause" class="w-5 h-5"></i>
+                    </button>
+                    <button id="switch-camera-btn" onclick="switchCameraFacingMode()" title="Switch Camera (Front/Back)" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition hover:scale-105 active:scale-95">
+                        <i data-lucide="switch-camera" class="w-5 h-5"></i>
+                    </button>
+                    <button id="torch-btn" onclick="toggleTorch()" title="Toggle Flashlight" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition opacity-50 cursor-not-allowed hover:scale-105 active:scale-95">
+                        <i id="torch-icon" data-lucide="zap" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="playBeepSound()" title="Test Audio Feedback" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition hover:scale-105 active:scale-95">
+                        <i data-lucide="volume-2" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FILE UPLOAD CONTAINER (Hidden by default) -->
+            <div id="file-container" class="hidden max-w-md mx-auto w-full">
+                <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-brand-500/50 bg-slate-900/50 hover:bg-slate-900/80 rounded-2xl p-8 text-center transition cursor-pointer flex flex-col items-center justify-center space-y-4 min-h-[320px]">
+                    <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                    <div class="p-4 bg-slate-800/80 text-brand-500 rounded-full shadow-inner">
+                        <i data-lucide="upload-cloud" class="w-10 h-10"></i>
+                    </div>
+                    <div>
+                        <p class="text-base font-medium text-slate-200">Drag & drop your image here</p>
+                        <p class="text-xs text-slate-400 mt-1">Supports PNG, JPG, WEBP formats</p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('file-input').click()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl border border-slate-700 transition">
+                        Browse Image File
+                    </button>
+                </div>
+            </div>
+
+            <!-- Latest Scan Result Card -->
+            <div id="result-card" class="hidden max-w-md mx-auto w-full bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl transition-all">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                    <div class="flex items-center space-x-2">
+                        <span id="result-type-badge" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30 uppercase tracking-wider">QR_CODE</span>
+                        <span id="result-time" class="text-xs text-slate-500">Just now</span>
+                    </div>
+                    <button onclick="dismissResultCard()" class="text-slate-500 hover:text-slate-300 p-1 rounded-lg">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 mb-4 break-all">
+                    <p id="result-text" class="font-mono text-sm text-slate-200 selection:bg-brand-500/30">https://example.com</p>
+                </div>
+
+                <!-- Action Button Matrix -->
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="copyResultText()" class="flex items-center justify-center space-x-1.5 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span>Copy</span>
+                    </button>
+                    <a id="btn-open-url" href="#" target="_blank" class="hidden flex items-center justify-center space-x-1.5 py-2 px-3 bg-brand-600 hover:bg-brand-500 text-slate-950 rounded-xl text-xs font-semibold transition">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        <span>Open Link</span>
+                    </a>
+                    <button onclick="searchWebResult()" class="flex items-center justify-center space-x-1.5 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition">
+                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                        <span>Search</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: HISTORY VIEW (Hidden initially) -->
+        <div id="tab-history" class="hidden space-y-4">
+            
+            <!-- History Header & Controls -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                <!-- Search input -->
+                <div class="relative flex-grow max-w-md">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="history-search" oninput="renderHistory()" placeholder="Search stored scan history..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500/50 transition">
+                </div>
+                <!-- Actions -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="exportHistory('csv')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition flex items-center space-x-1">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>CSV</span>
+                    </button>
+                    <button onclick="exportHistory('json')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition flex items-center space-x-1">
+                        <i data-lucide="file-json" class="w-3.5 h-3.5"></i>
+                        <span>JSON</span>
+                    </button>
+                    <button onclick="clearHistory()" class="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-medium transition flex items-center space-x-1">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <span>Clear All</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- History List View -->
+            <div id="history-list" class="space-y-2.5">
+                <!-- Items populated dynamically by JavaScript -->
+            </div>
+
+            <!-- Empty History State -->
+            <div id="history-empty" class="hidden text-center py-12 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800">
+                <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-500">
+                    <i data-lucide="inbox" class="w-6 h-6"></i>
+                </div>
+                <p class="text-slate-300 font-medium">No scan history recorded</p>
+                <p class="text-xs text-slate-500 mt-1">Codes you scan using live camera or uploads will appear here.</p>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-900/40 py-4 text-center text-xs text-slate-500">
+        <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p>ScanPulse &copy; 2026. Browser-based client-side scanner.</p>
+            <p class="flex items-center space-x-1">
+                <span>Powered by</span>
+                <span class="font-mono text-slate-400">html5-qrcode</span>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 ease-out z-50 flex items-center space-x-2 px-4 py-3 bg-slate-800 border border-slate-700 text-slate-100 rounded-xl shadow-2xl pointer-events-none">
+        <i id="toast-icon" data-lucide="check-circle" class="w-5 h-5 text-brand-500"></i>
+        <span id="toast-msg" class="text-sm font-medium">Notification message</span>
+    </div>
+
+    <script>
+        // Global Application State Variables
+        let html5QrCode = null;
+        let isCameraRunning = false;
+        let currentFacingMode = "environment"; // "user" or "environment"
+        let currentScanResult = null;
+        let torchEnabled = false;
+        let mediaTrack = null;
+        let scanHistory = JSON.parse(localStorage.getItem('scanpulse_history') || '[]');
+
+        // Initialize App & Lucide Icons
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateHistoryBadge();
+            startCamera();
+            setupDragAndDrop();
+        });
+
+        // Toast Notification System
+        function showToast(message, iconName = 'check-circle') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.textContent = message;
+            toastIcon.setAttribute('data-lucide', iconName);
+            lucide.createIcons();
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Web Audio API Beep Generator
+        function playBeepSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Pitch A5
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                console.warn('Audio playback error:', e);
+            }
+        }
+
+        // Start Live Camera Stream
+        async function startCamera() {
+            if (isCameraRunning) return;
+
+            document.getElementById('camera-off-state').classList.add('hidden');
+            document.getElementById('scanner-overlay').classList.remove('hidden');
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+
+            const config = {
+                fps: 15,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            try {
+                await html5QrCode.start(
+                    { facingMode: currentFacingMode },
+                    config,
+                    onScanSuccess,
+                    onScanFailure
+                );
+                
+                isCameraRunning = true;
+                updateCameraPowerIcon();
+                checkTorchCapability();
+
+            } catch (err) {
+                console.error("Error starting camera:", err);
+                document.getElementById('camera-off-state').classList.remove('hidden');
+                document.getElementById('scanner-overlay').classList.add('hidden');
+                showToast("Could not access camera", "alert-circle");
+            }
+        }
+
+        // Stop Camera Stream
+        async function stopCamera() {
+            if (html5QrCode && isCameraRunning) {
+                try {
+                    await html5QrCode.stop();
+                    isCameraRunning = false;
+                    torchEnabled = false;
+                    mediaTrack = null;
+                    updateTorchIcon();
+                    updateCameraPowerIcon();
+                    document.getElementById('camera-off-state').classList.remove('hidden');
+                    document.getElementById('scanner-overlay').classList.add('hidden');
+                } catch (err) {
+                    console.error("Failed to stop camera:", err);
+                }
+            }
+        }
+
+        // Toggle Camera Power
+        function toggleCameraPower() {
+            if (isCameraRunning) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        }
+
+        function updateCameraPowerIcon() {
+            const icon = document.getElementById('camera-power-icon');
+            icon.setAttribute('data-lucide', isCameraRunning ? 'pause' : 'play');
+            lucide.createIcons();
+        }
+
+        // Switch Camera (Front vs Back Facing Mode)
+        async function switchCameraFacingMode() {
+            currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+            if (isCameraRunning) {
+                await stopCamera();
+                await startCamera();
+            }
+            showToast(`Switched to ${currentFacingMode === 'user' ? 'front' : 'rear'} camera`);
+        }
+
+        // Flashlight / Torch Control
+        async function checkTorchCapability() {
+            const torchBtn = document.getElementById('torch-btn');
+            try {
+                // Get track from html5QrCode video element
+                const videoEl = document.querySelector('#reader video');
+                if (videoEl && videoEl.srcObject) {
+                    const stream = videoEl.srcObject;
+                    const tracks = stream.getVideoTracks();
+                    if (tracks.length > 0) {
+                        mediaTrack = tracks[0];
+                        const capabilities = mediaTrack.getCapabilities ? mediaTrack.getCapabilities() : {};
+                        if (capabilities.torch) {
+                            torchBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            torchBtn.removeAttribute('disabled');
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("Torch capabilities check error:", e);
+            }
+            torchBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            torchBtn.setAttribute('disabled', 'true');
+        }
+
+        async function toggleTorch() {
+            if (!mediaTrack) return;
+            try {
+                torchEnabled = !torchEnabled;
+                await mediaTrack.applyConstraints({
+                    advanced: [{ torch: torchEnabled }]
+                });
+                updateTorchIcon();
+            } catch (e) {
+                console.error("Torch toggle failed:", e);
+                showToast("Flashlight not supported", "zap-off");
+            }
+        }
+
+        function updateTorchIcon() {
+            const torchBtn = document.getElementById('torch-btn');
+            if (torchEnabled) {
+                torchBtn.classList.add('bg-brand-500/20', 'text-brand-400', 'border', 'border-brand-500/30');
+            } else {
+                torchBtn.classList.remove('bg-brand-500/20', 'text-brand-400', 'border', 'border-brand-500/30');
+            }
+        }
+
+        // Successful Code Scan Callback
+        function onScanSuccess(decodedText, decodedResult) {
+            // Visual Flash Effect
+            const flash = document.getElementById('flash-overlay');
+            flash.classList.remove('opacity-0');
+            flash.classList.add('opacity-100');
+            setTimeout(() => {
+                flash.classList.remove('opacity-100');
+                flash.classList.add('opacity-0');
+            }, 200);
+
+            // Audio Feedback
+            playBeepSound();
+
+            const format = decodedResult.result.format ? decodedResult.result.format.formatName : "QR_CODE";
+            processScannedResult(decodedText, format);
+        }
+
+        function onScanFailure(error) {
+            // Continuous scanning attempt - quiet failure expected
+        }
+
+        // Process Scan Results
+        function processScannedResult(text, formatName) {
+            currentScanResult = {
+                text: text,
+                format: formatName,
+                timestamp: new Date().toISOString()
+            };
+
+            // Display in result card
+            document.getElementById('result-text').textContent = text;
+            document.getElementById('result-type-badge').textContent = formatName;
+            document.getElementById('result-card').classList.remove('hidden');
+
+            // Handle URL button
+            const openUrlBtn = document.getElementById('btn-open-url');
+            if (isValidUrl(text)) {
+                openUrlBtn.href = text;
+                openUrlBtn.classList.remove('hidden');
+            } else {
+                openUrlBtn.classList.add('hidden');
+            }
+
+            // Save to history list
+            saveToHistory(currentScanResult);
+        }
+
+        function dismissResultCard() {
+            document.getElementById('result-card').classList.add('hidden');
+        }
+
+        function isValidUrl(string) {
+            try {
+                const url = new URL(string);
+                return url.protocol === "http:" || url.protocol === "https:";
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // File Scan Fallback Implementation
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('border-brand-500'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-brand-500'), false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    scanFile(files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                scanFile(files[0]);
+            }
+        }
+
+        async function scanFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast('Please upload an image file', 'alert-triangle');
+                return;
+            }
+
+            const scanner = new Html5Qrcode("reader");
+            try {
+                const result = await scanner.scanFile(file, true);
+                playBeepSound();
+                processScannedResult(result, 'IMAGE_FILE');
+                showToast('Code successfully scanned from file!');
+            } catch (err) {
+                console.error("File scanning error:", err);
+                showToast('No readable code detected in image', 'x-circle');
+            }
+        }
+
+        // Mode Switching (Live Camera vs Upload File)
+        function setScanMode(mode) {
+            const camContainer = document.getElementById('camera-container');
+            const fileContainer = document.getElementById('file-container');
+            const camBtn = document.getElementById('mode-camera-btn');
+            const fileBtn = document.getElementById('mode-file-btn');
+
+            if (mode === 'camera') {
+                camContainer.classList.remove('hidden');
+                fileContainer.classList.add('hidden');
+
+                camBtn.className = "px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition bg-slate-800 text-white shadow-sm";
+                fileBtn.className = "px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition text-slate-400 hover:text-white";
+
+                startCamera();
+            } else {
+                camContainer.classList.add('hidden');
+                fileContainer.classList.remove('hidden');
+
+                fileBtn.className = "px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition bg-slate-800 text-white shadow-sm";
+                camBtn.className = "px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition text-slate-400 hover:text-white";
+
+                stopCamera();
+            }
+        }
+
+        // Actions: Copy & Search
+        function copyResultText() {
+            if (!currentScanResult) return;
+            copyToClipboard(currentScanResult.text);
+        }
+
+        function copyToClipboard(text) {
+            // Using execCommand fallback for iframe safety
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast("Copied to clipboard!");
+            } catch (err) {
+                showToast("Failed to copy text", "x-circle");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function searchWebResult() {
+            if (!currentScanResult) return;
+            const query = encodeURIComponent(currentScanResult.text);
+            window.open(`https://www.google.com/search?q=${query}`, '_blank');
+        }
+
+        // History Storage & Rendering Logic
+        function saveToHistory(item) {
+            // Avoid duplicate identical immediate consecutive scans
+            if (scanHistory.length > 0 && scanHistory[0].text === item.text && (new Date(item.timestamp) - new Date(scanHistory[0].timestamp)) < 5000) {
+                return;
+            }
+
+            scanHistory.unshift(item);
+            if (scanHistory.length > 100) scanHistory.pop(); // Max 100 items
+
+            localStorage.setItem('scanpulse_history', JSON.stringify(scanHistory));
+            updateHistoryBadge();
+            renderHistory();
+        }
+
+        function updateHistoryBadge() {
+            document.getElementById('history-badge').textContent = scanHistory.length;
+        }
+
+        function renderHistory() {
+            const listEl = document.getElementById('history-list');
+            const emptyEl = document.getElementById('history-empty');
+            const searchQuery = (document.getElementById('history-search').value || '').toLowerCase();
+
+            listEl.innerHTML = '';
+
+            const filtered = scanHistory.filter(item => 
+                item.text.toLowerCase().includes(searchQuery) || 
+                item.format.toLowerCase().includes(searchQuery)
+            );
+
+            if (filtered.length === 0) {
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+
+            emptyEl.classList.add('hidden');
+
+            filtered.forEach((item, index) => {
+                const isUrl = isValidUrl(item.text);
+                const dateFormatted = new Date(item.timestamp).toLocaleString();
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 hover:border-slate-700 p-3.5 rounded-xl flex items-center justify-between gap-3 transition group";
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3 overflow-hidden">
+                        <div class="p-2.5 bg-slate-800 group-hover:bg-brand-500/10 group-hover:text-brand-400 text-slate-400 rounded-lg transition shrink-0">
+                            <i data-lucide="${isUrl ? 'link' : 'barcode'}" class="w-4 h-4"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700 uppercase">${item.format}</span>
+                                <span class="text-xs text-slate-500">${dateFormatted}</span>
+                            </div>
+                            <p class="text-sm font-mono text-slate-200 truncate mt-0.5">${escapeHtml(item.text)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1 shrink-0">
+                        <button onclick="copyToClipboard('${escapeJsString(item.text)}')" title="Copy" class="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition">
+                            <i data-lucide="copy" class="w-4 h-4"></i>
+                        </button>
+                        ${isUrl ? `
+                        <a href="${escapeHtml(item.text)}" target="_blank" title="Open Link" class="p-2 text-brand-400 hover:bg-brand-500/10 rounded-lg transition">
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>` : ''}
+                        <button onclick="deleteHistoryItem(${index})" title="Delete" class="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition">
+                            <i data-lucide="trash" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        function deleteHistoryItem(index) {
+            scanHistory.splice(index, 1);
+            localStorage.setItem('scanpulse_history', JSON.stringify(scanHistory));
+            updateHistoryBadge();
+            renderHistory();
+            showToast("Item removed");
+        }
+
+        function clearHistory() {
+            if (scanHistory.length === 0) return;
+            scanHistory = [];
+            localStorage.setItem('scanpulse_history', JSON.stringify(scanHistory));
+            updateHistoryBadge();
+            renderHistory();
+            showToast("History cleared");
+        }
+
+        // Export History Options
+        function exportHistory(format) {
+            if (scanHistory.length === 0) {
+                showToast("No data to export", "alert-triangle");
+                return;
+            }
+
+            let dataStr = "";
+            let mimeType = "";
+            let filename = `scan_history_${new Date().toISOString().slice(0,10)}`;
+
+            if (format === 'json') {
+                dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(scanHistory, null, 2));
+                mimeType = "application/json";
+                filename += ".json";
+            } else if (format === 'csv') {
+                const headers = ["Timestamp", "Format", "Content"];
+                const rows = scanHistory.map(item => [
+                    `"${item.timestamp}"`,
+                    `"${item.format}"`,
+                    `"${item.text.replace(/"/g, '""')}"`
+                ]);
+                const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+                dataStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+                mimeType = "text/csv";
+                filename += ".csv";
+            }
+
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", filename);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+
+            showToast(`Exported history as ${format.toUpperCase()}`);
+        }
+
+        // Navigation Tab Switching
+        function switchTab(tabName) {
+            const scannerTab = document.getElementById('tab-scanner');
+            const historyTab = document.getElementById('tab-history');
+            const scannerBtn = document.getElementById('btn-tab-scanner');
+            const historyBtn = document.getElementById('btn-tab-history');
+
+            if (tabName === 'scanner') {
+                scannerTab.classList.remove('hidden');
+                historyTab.classList.add('hidden');
+
+                scannerBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 bg-brand-500/10 text-brand-500 border border-brand-500/20";
+                historyBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+
+                startCamera();
+            } else {
+                scannerTab.classList.add('hidden');
+                historyTab.classList.remove('hidden');
+
+                historyBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 bg-brand-500/10 text-brand-500 border border-brand-500/20";
+                scannerBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+
+                stopCamera();
+                renderHistory();
+            }
+        }
+
+        // Utilities
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function escapeJsString(str) {
+            return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+    </script>
+</body>
+</html>
