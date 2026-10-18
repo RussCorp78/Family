@@ -1,0 +1,293 @@
+:root {
+  --paper: #eeeae1;
+  --polaroid: #fffdf7;
+  --ink: #222222;
+  --muted: #716c64;
+  --focus: #6d89a4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  color: #26313c;
+  background-color: var(--paper);
+  background-image: radial-gradient(rgba(93, 87, 77, 0.18) 0.7px, transparent 0.7px);
+  background-size: 7px 7px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.page-shell {
+  width: min(1160px, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 24px 20px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+}
+
+.site-header p {
+  margin: 5px 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.search-box {
+  position: relative;
+  width: min(320px, 100%);
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  translate: 0 -52%;
+  color: #797d82;
+  font-size: 1.35rem;
+  pointer-events: none;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 11px 16px 11px 42px;
+  border: 1px solid rgba(0, 0, 0, 0.11);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  outline: none;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.06);
+}
+
+.search-box input:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(109, 137, 164, 0.22);
+}
+
+ .gallery {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 76px;
+  align-items: center;
+  gap: 24px;
+}
+
+.arrow-button {
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 50%;
+  color: #303840;
+  background: transparent;
+  font-size: 3.4rem;
+  font-weight: 200;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.arrow-button:hover {
+  background: rgba(0, 0, 0, 0.055);
+  transform: scale(1.05);
+}
+
+.arrow-button:focus-visible {
+  outline: 3px solid rgba(109, 137, 164, 0.5);
+}
+
+.polaroid {
+  width: min(660px, 100%);
+  margin: auto;
+  padding: 18px 18px 32px;
+  background: var(--polaroid);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 18px 50px rgba(54, 48, 39, 0.2);
+  transform: rotate(-0.45deg);
+  transition: transform 280ms ease, opacity 200ms ease;
+}
+
+.polaroid.flick-left {
+  opacity: 0;
+  transform: translateX(-120px) rotate(-8deg) scale(0.94);
+}
+
+.polaroid.flick-right {
+  opacity: 0;
+  transform: translateX(120px) rotate(8deg) scale(0.94);
+}
+
+.polaroid.arrive-left {
+  animation: arriveFromLeft 320ms ease;
+}
+
+.polaroid.arrive-right {
+  animation: arriveFromRight 320ms ease;
+}
+
+@keyframes arriveFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-80px) rotate(-5deg) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(-0.45deg);
+  }
+}
+
+@keyframes arriveFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(80px) rotate(5deg) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(-0.45deg);
+  }
+}
+
+.photo-window {
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  background: #dedbd2;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.12);
+}
+
+.photo-window img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-details {
+  padding: 20px 24px 0;
+  color: var(--ink);
+  font-family: "Permanent Marker", "Comic Sans MS", cursive;
+}
+
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.title-row h2 {
+  margin: 0;
+  font-size: clamp(1.55rem, 4vw, 2.1rem);
+  line-height: 1.15;
+  font-weight: 400;
+}
+
+.title-row time {
+  padding-top: 5px;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.description {
+  margin: 10px 0 0;
+  font-size: clamp(1rem, 2.5vw, 1.3rem);
+  line-height: 1.45;
+}
+
+.location {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.no-results {
+  text-align: center;
+}
+
+.no-results h2 {
+  margin-bottom: 6px;
+}
+
+.no-results p {
+  margin-top: 0;
+  color: #6b7280;
+}
+
+footer {
+  min-height: 26px;
+  padding-top: 8px;
+  color: #858585;
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 700px) {
+  .page-shell {
+    padding: 18px 12px 14px;
+  }
+
+  .site-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  
+  .gallery {
+  flex: 0;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  gap: 5px;
+}
+
+  .arrow-button {
+    width: 40px;
+    height: 50px;
+    font-size: 2.7rem;
+  }
+
+  .polaroid {
+    padding: 10px 10px 23px;
+  }
+
+  .photo-details {
+    padding: 16px 12px 0;
+  }
+
+  .title-row {
+    display: block;
+  }
+
+  .title-row time {
+    display: block;
+    padding-top: 7px;
+  }
+}
