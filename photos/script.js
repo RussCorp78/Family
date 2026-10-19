@@ -16,6 +16,9 @@ async function loadPhotos() {
     .eq("published", true)
     .order("date_taken", { ascending: false });
 
+  console.log("SUPABASE DATA:", data);
+  console.log("SUPABASE ERROR:", error);
+  
   if (error) {
     console.error("Error loading photos:", error);
     return;
