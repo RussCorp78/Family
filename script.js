@@ -97,6 +97,7 @@ async function checkAuthorisation(user) {
   await loadTodos();
   await loadShopping();
   await loadCalendar();
+  await loadPhotos();
 }
 
 // =========================================================
@@ -155,6 +156,9 @@ document.querySelectorAll(".nav-button").forEach((button) => {
     // Refresh data for the specific section being opened
     if (targetSectionId === "recipeSection") {
       await loadRecipes();
+    }
+    if (targetSectionId === "photoSection") {
+      await loadPhotos();
     }
   });
 });
@@ -1003,38 +1007,62 @@ window.addEventListener("load", () => {
     window.scrollTo(0, 0);
 });
 
+let photos = [];
+let currentPhotoIndex = 0;
+let matchingIndexes = [];
+
 async function loadPhotos() {
+
+  const {
+    data: { session }
+  } = await supabaseClient.auth.getSession();
+
+  console.log("PHOTO SESSION:", session);
+
   const { data, error } = await supabaseClient
     .from("Photos")
     .select("*")
-    
     .order("date_taken", { ascending: false });
 
   console.log("SUPABASE DATA:", data);
   console.log("SUPABASE ERROR:", error);
-  
+
   if (error) {
     console.error("Error loading photos:", error);
     return;
   }
 
-  photos = data.map(photo => {
-    const { data: imageData } = supabaseClient.storage
-      .from("Photos")
-      .getPublicUrl(photo.image_path);
+  photos = await Promise.all(
+    (data || []).map(async (photo) => {
 
-    return {
-      title: photo.title,
-      image: imageData.publicUrl,
-      description: photo.description,
-      date: photo.date_taken,
-      dateTime: photo.date_taken,
-      location: photo.location,
-      keywords: photo.keywords
-        ? photo.keywords.split(",").map(keyword => keyword.trim())
-        : []
-    };
-  });
+      const { data: imageData, error: imageError } =
+        await supabaseClient.storage
+          .from("Photos")
+          .createSignedUrl(photo.image_path, 3600);
+
+      if (imageError) {
+        console.error(
+          "Unable to create image URL:",
+          photo.image_path,
+          imageError
+        );
+      }
+
+      return {
+        title: photo.title || "",
+        image: imageData?.signedUrl || "",
+        description: photo.description || "",
+        date: photo.date_taken || "",
+        dateTime: photo.date_taken || "",
+        location: photo.location || "",
+        keywords: photo.keywords
+          ? photo.keywords
+              .split(",")
+              .map(keyword => keyword.trim())
+          : []
+      };
+    })
+  );
 
   matchingIndexes = photos.map((_, index) => index);
   currentPhotoIndex = 0;
@@ -1168,5 +1196,3 @@ document.addEventListener("keydown", event => {
   if (event.key === "ArrowLeft") move(-1);
   if (event.key === "ArrowRight") move(1);
 });
-
-loadPhotos();
