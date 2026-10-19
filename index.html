@@ -8,6 +8,13 @@
     <link rel="stylesheet" href="style.css">
 
 <!-- =====================================================
+Sharpie Font
+===================================================== -->  
+< link rel="preconnect" href="https://fonts.googleapis.com">
+< link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+< link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+
+<!-- =====================================================
 SUPABASE LINK
 ===================================================== -->
     
@@ -91,6 +98,7 @@ NAVIGATION
         <button class="nav-button" data-section="shoppingSection"> Shopping </button>  
         <button class="nav-button" data-section="calendarSection"> Calendar </button>
         <button class="nav-button" data-section="recipeSection">Recipes</button>
+        <button class="nav-button" data-section="photoSection">Photos</button>
     </nav>
 
 <!-- =================================================
@@ -222,7 +230,73 @@ RECIPE SECTION
     </div>
   </div>
 </section>
-  
+
+<!-- =================================================
+Photo SECTION
+================================================= -->
+    
+<section id="photoSection" class="app-section hidden">
+
+    <div class="site-header">
+        <div>
+            <h1>Paul's photographs</h1>
+            <p>One frame at a time.</p>
+        </div>
+
+        <label class="search-box" for="photo-search">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input id="photo-search"
+                   type="search"
+                   placeholder="Search photos..."
+                   autocomplete="off">
+        </label>
+    </div>
+
+    <section class="gallery" aria-live="polite">
+
+        <button id="previous-button"
+                class="arrow-button"
+                type="button"
+                aria-label="Previous photograph">‹< /button>
+
+        <article id="polaroid" class="polaroid">
+
+            <div class="photo-window">
+                <img id="photo-image" src="" alt="">
+            </div>
+
+            <div class="photo-details">
+
+                <div class="title-row">
+                    <h2 id="photo-title"></h2>
+                    <time id="photo-date"></time>
+                </div>
+
+                <p id="photo-description" class="description"></p>
+                <p id="photo-location" class="location"></p>
+
+            </div>
+
+        </article>
+
+        <div id="no-results" class="no-results" hidden>
+            <h2>No photographs found</h2>
+            <p>Try another keyword.</p>
+        </div>
+
+        <button id="next-button"
+                class="arrow-button"
+                type="button"
+                aria-label="Next photograph">›</button>
+
+    </section>
+
+    <div class="photo-footer">
+        <span id="photo-counter">0 / 0</span>
+    </div>
+
+</section>
+
 </main>
 
 <script src="script.js"></script>
