@@ -13,7 +13,7 @@ async function loadPhotos() {
   const { data, error } = await supabaseClient
     .from("Photos")
     .select("*")
-    .eq("published", true)
+    
     .order("date_taken", { ascending: false });
 
   console.log("SUPABASE DATA:", data);
