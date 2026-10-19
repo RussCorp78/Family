@@ -97,7 +97,6 @@ async function checkAuthorisation(user) {
   await loadTodos();
   await loadShopping();
   await loadCalendar();
-  await loadPhotos();
 }
 
 // =========================================================
@@ -158,8 +157,12 @@ document.querySelectorAll(".nav-button").forEach((button) => {
       await loadRecipes();
     }
     if (targetSectionId === "photoSection") {
-      await loadPhotos();
-    }
+  try {
+    await loadPhotos();
+  } catch (error) {
+    console.error("Photo loading failed:", error);
+  }
+}
   });
 });
 
@@ -1084,9 +1087,6 @@ const elements = {
   next: document.querySelector("#next-button")
 };
 
-let currentPhotoIndex = 0;
-let matchingIndexes = [];
-
 function getSearchableText(photo) {
   return [
     photo.title,
@@ -1098,11 +1098,11 @@ function getSearchableText(photo) {
 
 function renderPhoto(animate = true) {
   if (matchingIndexes.length === 0) {
-    elements.polaroid.hidden = true;
-    elements.noResults.hidden = false;
-    elements.previous.disabled = true;
-    elements.next.disabled = true;
-    elements.counter.textContent = "0 / 0";
+    if (elements.polaroid) elements.polaroid.hidden = true;
+    if (elements.noResults) elements.noResults.hidden = false;
+    if (elements.previous) elements.previous.disabled = true;
+    if (elements.next) elements.next.disabled = true;
+    if (elements.counter) elements.counter.textContent = "0 / 0";
     return;
   }
 
@@ -1188,9 +1188,9 @@ function searchPhotos() {
   renderPhoto(false);
 }
 
-elements.previous.addEventListener("click", () => move(-1));
-elements.next.addEventListener("click", () => move(1));
-elements.search.addEventListener("input", searchPhotos);
+elements.previous?.addEventListener("click", () => move(-1));
+elements.next?.addEventListener("click", () => move(1));
+elements.search?.addEventListener("input", searchPhotos);
 
 document.addEventListener("keydown", event => {
   if (event.key === "ArrowLeft") move(-1);
