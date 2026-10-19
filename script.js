@@ -22,7 +22,14 @@ const appScreen = document.getElementById("appScreen");
 const loginForm = document.getElementById("loginForm");
 const loginMessage = document.getElementById("loginMessage");
 const welcome = document.getElementById("welcome");
-
+console.log({
+  loginScreen,
+  holdingScreen,
+  appScreen,
+  loginForm,
+  loginMessage,
+  welcome
+});
 // =========================================================
 // STARTUP
 // =========================================================
