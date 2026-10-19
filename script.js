@@ -1085,7 +1085,7 @@ const elements = {
 };
 
 let currentPhotoIndex = 0;
-let matchingIndexes = photos.map((_, index) => index);
+let matchingIndexes = [];
 
 function getSearchableText(photo) {
   return [
