@@ -987,3 +987,12 @@ document.getElementById("closeRecipe")?.addEventListener("click", () => {
 document.addEventListener("DOMContentLoaded", () => {
   initRecipeEventListeners(); // Sets up button click events
 });
+
+if ("scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+}
+
+window.addEventListener("load", () => {
+    window.scrollTo(0, 0);
+});
+
