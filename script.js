@@ -1035,38 +1035,26 @@ async function loadPhotos() {
     return;
   }
 
-  photos = await Promise.all(
-    (data || []).map(async (photo) => {
+  photos = data.map(photo => {
+  const { data: imageData } = supabaseClient.storage
+    .from("Photos")
+    .getPublicUrl(photo.image_path);
 
-      const { data: imageData, error: imageError } =
-        await supabaseClient.storage
-          .from("Photos")
-          .createSignedUrl(photo.image_path, 3600);
+  console.log("IMAGE PATH:", photo.image_path);
+  console.log("IMAGE URL:", imageData.publicUrl);
 
-      if (imageError) {
-        console.error(
-          "Unable to create image URL:",
-          photo.image_path,
-          imageError
-        );
-      }
-
-      return {
-        title: photo.title || "",
-        image: imageData?.signedUrl || "",
-        description: photo.description || "",
-        date: photo.date_taken || "",
-        dateTime: photo.date_taken || "",
-        location: photo.location || "",
-        keywords: photo.keywords
-          ? photo.keywords
-              .split(",")
-              .map(keyword => keyword.trim())
-          : []
-      };
-    })
-  );
-
+  return {
+    title: photo.title || "",
+    image: imageData.publicUrl,
+    description: photo.description || "",
+    date: photo.date_taken || "",
+    dateTime: photo.date_taken || "",
+    location: photo.location || "",
+    keywords: photo.keywords
+      ? photo.keywords.split(",").map(keyword => keyword.trim())
+      : []
+  };
+});
   matchingIndexes = photos.map((_, index) => index);
   currentPhotoIndex = 0;
 
