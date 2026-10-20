@@ -454,10 +454,19 @@ document.getElementById("shoppingForm")?.addEventListener("submit", async (event
 // LOAD SHOPPING LIST
 // =========================================================
 async function loadShopping() {
+  const startOfWeek = new Date();
+  const day = startOfWeek.getDay();
+
+  // Move back to Monday
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+  startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
+  startOfWeek.setHours(0, 0, 0, 0);
+
   const { data, error } = await supabaseClient
     .from("todos")
     .select("*")
     .eq("list_type", "shopping")
+    .or(`completed.eq.false,completed_at.gte.${startOfWeek.toISOString()}`)
     .order("completed", { ascending: true })
     .order("created_at", { ascending: false });
 
