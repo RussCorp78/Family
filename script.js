@@ -1024,46 +1024,43 @@ let currentPhotoIndex = 0;
 let matchingIndexes = [];
 
 async function loadPhotos() {
-
-  const {
-    data: { session }
-  } = await supabaseClient.auth.getSession();
-
-  console.log("PHOTO SESSION:", session);
-
   const { data, error } = await supabaseClient
     .from("Photos")
     .select("*")
+    
     .order("date_taken", { ascending: false });
 
   console.log("SUPABASE DATA:", data);
   console.log("SUPABASE ERROR:", error);
-
+  
   if (error) {
     console.error("Error loading photos:", error);
     return;
   }
 
-  photos = data.map(photo => {
-  const { data: imageData } = supabaseClient.storage
-    .from("Photos")
-    .getPublicUrl(photo.image_path);
+ photos = await Promise.all(data.map(async photo => {
 
-  console.log("IMAGE PATH:", photo.image_path);
-  console.log("IMAGE URL:", imageData.publicUrl);
+    const { data: imageData, error: imageError } = await supabaseClient.storage
+      .from("Photos")
+      .createSignedUrl(photo.image_path, 3600);
 
-  return {
-    title: photo.title || "",
-    image: imageData.publicUrl,
-    description: photo.description || "",
-    date: photo.date_taken || "",
-    dateTime: photo.date_taken || "",
-    location: photo.location || "",
-    keywords: photo.keywords
-      ? photo.keywords.split(",").map(keyword => keyword.trim())
-      : []
-  };
-});
+    if (imageError) {
+      console.error("Error creating signed URL:", imageError);
+    }
+
+    return {
+      title: photo.title,
+      image: imageData?.signedUrl || "",
+      description: photo.description,
+      date: photo.date_taken,
+      dateTime: photo.date_taken,
+      location: photo.location,
+      keywords: photo.keywords
+        ? photo.keywords.split(",").map(keyword => keyword.trim())
+        : []
+    };
+  }));
+
   matchingIndexes = photos.map((_, index) => index);
   currentPhotoIndex = 0;
 
@@ -1084,6 +1081,9 @@ const elements = {
   next: document.querySelector("#next-button")
 };
 
+let currentPhotoIndex = 0;
+let matchingIndexes = photos.map((_, index) => index);
+
 function getSearchableText(photo) {
   return [
     photo.title,
@@ -1095,11 +1095,11 @@ function getSearchableText(photo) {
 
 function renderPhoto(animate = true) {
   if (matchingIndexes.length === 0) {
-    if (elements.polaroid) elements.polaroid.hidden = true;
-    if (elements.noResults) elements.noResults.hidden = false;
-    if (elements.previous) elements.previous.disabled = true;
-    if (elements.next) elements.next.disabled = true;
-    if (elements.counter) elements.counter.textContent = "0 / 0";
+    elements.polaroid.hidden = true;
+    elements.noResults.hidden = false;
+    elements.previous.disabled = true;
+    elements.next.disabled = true;
+    elements.counter.textContent = "0 / 0";
     return;
   }
 
@@ -1113,7 +1113,7 @@ function renderPhoto(animate = true) {
     elements.image.alt = photo.title;
     elements.title.textContent = photo.title;
     elements.description.textContent = photo.description;
-    elements.date.textContent = photo.date.split("-").reverse().join("-");
+    elements.date.textContent = photo.date;
     elements.date.dateTime = photo.dateTime;
     elements.location.textContent = `📍 ${photo.location}`;
     elements.counter.textContent = `${matchingIndexes.indexOf(currentPhotoIndex) + 1} / ${matchingIndexes.length}`;
@@ -1185,11 +1185,13 @@ function searchPhotos() {
   renderPhoto(false);
 }
 
-elements.previous?.addEventListener("click", () => move(-1));
-elements.next?.addEventListener("click", () => move(1));
-elements.search?.addEventListener("input", searchPhotos);
+elements.previous.addEventListener("click", () => move(-1));
+elements.next.addEventListener("click", () => move(1));
+elements.search.addEventListener("input", searchPhotos);
 
 document.addEventListener("keydown", event => {
   if (event.key === "ArrowLeft") move(-1);
   if (event.key === "ArrowRight") move(1);
 });
+
+loadPhotos();
