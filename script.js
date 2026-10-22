@@ -1044,17 +1044,22 @@ async function loadPhotos() {
     return;
   }
 
-  photos = data.map(photo => {
-  const { data: imageData } = supabaseClient.storage
+  photos = await Promise.all(data.map(async photo => {
+
+  const { data: imageData, error: imageError } = await supabaseClient.storage
     .from("Photos")
-    .getPublicUrl(photo.image_path);
+    .createSignedUrl(photo.image_path, 3600);
+
+  if (imageError) {
+    console.error("Error creating signed URL:", imageError);
+  }
 
   console.log("IMAGE PATH:", photo.image_path);
-  console.log("IMAGE URL:", imageData.publicUrl);
+  console.log("SIGNED IMAGE URL:", imageData?.signedUrl);
 
   return {
     title: photo.title || "",
-    image: imageData.publicUrl,
+    image: imageData?.signedUrl || "",
     description: photo.description || "",
     date: photo.date_taken || "",
     dateTime: photo.date_taken || "",
@@ -1063,7 +1068,8 @@ async function loadPhotos() {
       ? photo.keywords.split(",").map(keyword => keyword.trim())
       : []
   };
-});
+
+}));
   matchingIndexes = photos.map((_, index) => index);
   currentPhotoIndex = 0;
 
