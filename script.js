@@ -1130,12 +1130,37 @@ function renderPhoto(animate = true) {
     elements.polaroid.classList.remove("changing");
   };
 
-  if (animate) {
+    if (animate) {
     elements.polaroid.classList.add("changing");
     window.setTimeout(update, 140);
   } else {
     update();
   }
+
+  // Preload the previous and next photos
+  if (matchingIndexes.length > 1) {
+    const currentPosition = matchingIndexes.indexOf(currentPhotoIndex);
+
+    const nextPosition =
+      (currentPosition + 1) % matchingIndexes.length;
+
+    const previousPosition =
+      (currentPosition - 1 + matchingIndexes.length) %
+      matchingIndexes.length;
+
+    preloadPhoto(matchingIndexes[nextPosition]);
+    preloadPhoto(matchingIndexes[previousPosition]);
+  }
+}
+
+/* =====================================
+Added to stop the delay in photos loading
+========================================*/
+function preloadPhoto(index) {
+  if (!photos[index]?.image) return;
+
+  const img = new Image();
+  img.src = photos[index].image;
 }
 
 function move(direction) {
