@@ -588,8 +588,16 @@ function escapeHtml(value) {
 // =========================================================
 // CALENDAR
 // =========================================================
+let cachedEvents = []; // Store fetched events locally for instant toggle filtering
+
 document.getElementById("refreshCalendar")?.addEventListener("click", async () => {
   await loadCalendar();
+});
+
+// Listener for the 7 / 14 / 28 day toggle dropdown
+document.getElementById("calendarRangeSelect")?.addEventListener("change", (e) => {
+  const days = parseInt(e.target.value, 10) || 14;
+  renderCalendarEvents(cachedEvents, days);
 });
 
 async function loadCalendar() {
@@ -605,8 +613,13 @@ async function loadCalendar() {
     const response = await fetch(CLOUDFLARE_WORKER_URL);
     if (!response.ok) throw new Error("Failed to fetch calendar events.");
 
-    const events = await response.json();
-    renderCalendarEvents(events);
+    cachedEvents = await response.json();
+    
+    // Read selected range from dropdown (defaults to 14 if not found)
+    const rangeSelect = document.getElementById("calendarRangeSelect");
+    const selectedDays = rangeSelect ? parseInt(rangeSelect.value, 10) : 14;
+
+    renderCalendarEvents(cachedEvents, selectedDays);
   } catch (error) {
     console.error("Calendar Load Error:", error);
     todayContainer.innerHTML = `<p class="message">Unable to load today's events.</p>`;
@@ -614,7 +627,7 @@ async function loadCalendar() {
   }
 }
 
-function renderCalendarEvents(events) {
+function renderCalendarEvents(events, upcomingDays = 14) {
   const todayContainer = document.getElementById("calendarTodayList");
   const upcomingContainer = document.getElementById("calendarUpcomingList");
 
@@ -633,8 +646,9 @@ function renderCalendarEvents(events) {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const nextWeek = new Date(today);
-  nextWeek.setDate(nextWeek.getDate() + 7);
+  // Dynamic range cutoff date (7, 14, or 28 days out)
+  const rangeEnd = new Date(today);
+  rangeEnd.setDate(rangeEnd.getDate() + upcomingDays);
 
   const todayEvents = [];
   const upcomingEvents = [];
@@ -649,7 +663,7 @@ function renderCalendarEvents(events) {
 
   const todayKey = dateKey(today);
   const tomorrowKey = dateKey(tomorrow);
-  const nextWeekKey = dateKey(nextWeek);
+  const rangeEndKey = dateKey(rangeEnd);
 
   events.forEach((event) => {
     if (event.isAllDay) {
@@ -662,8 +676,8 @@ function renderCalendarEvents(events) {
         todayEvents.push(event);
       }
 
-      // Does the event overlap the upcoming period?
-      if (start < nextWeekKey && end > tomorrowKey) {
+      // Does the event overlap the selected upcoming period?
+      if (start < rangeEndKey && end > tomorrowKey) {
         upcomingEvents.push(event);
       }
     } else {
@@ -675,7 +689,7 @@ function renderCalendarEvents(events) {
         todayEvents.push(event);
       }
 
-      if (start < nextWeek && end > tomorrow) {
+      if (start < rangeEnd && end > tomorrow) {
         upcomingEvents.push(event);
       }
     }
@@ -688,7 +702,7 @@ function renderCalendarEvents(events) {
   }
 
   if (upcomingEvents.length === 0) {
-    upcomingContainer.innerHTML = `<div class="empty-state"><p>No upcoming events this week.</p></div>`;
+    upcomingContainer.innerHTML = `<div class="empty-state"><p>No upcoming events in the next ${upcomingDays} days.</p></div>`;
   } else {
     upcomingEvents.forEach((event) => upcomingContainer.appendChild(createEventCard(event)));
   }
@@ -715,8 +729,7 @@ function formatCalendarDate(startDateString, endDateString, isAllDay) {
   const startDate = new Date(startDateString);
   let endDate = endDateString ? new Date(endDateString) : null;
 
-  // iCal/Google all-day end dates are exclusive (e.g. May 10 all-day has end = May 11 00:00:00).
-  // Adjusting back by 1 second reflects true end day.
+  // iCal/Google all-day end dates are exclusive; subtract 1 second for accurate day checks
   if (isAllDay && endDate) {
     endDate = new Date(endDate.getTime() - 1000);
   }
@@ -731,7 +744,6 @@ function formatCalendarDate(startDateString, endDateString, isAllDay) {
     minute: "2-digit"
   };
 
-  // Check if start and end fall on different calendar days
   const isMultiDay = endDate && (
     startDate.getFullYear() !== endDate.getFullYear() ||
     startDate.getMonth() !== endDate.getMonth() ||
@@ -744,7 +756,6 @@ function formatCalendarDate(startDateString, endDateString, isAllDay) {
     return `${formattedStart} – ${formattedEnd}`;
   }
 
-  // Single-day event formatting
   const formattedDate = startDate.toLocaleDateString("en-GB", dateOptions);
 
   if (isAllDay) {
@@ -754,6 +765,7 @@ function formatCalendarDate(startDateString, endDateString, isAllDay) {
   const formattedTime = startDate.toLocaleTimeString("en-GB", timeOptions);
   return `${formattedDate}, ${formattedTime}`;
 }
+
 // =========================================================
 // CHANGE PASSWORD
 // =========================================================
