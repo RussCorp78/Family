@@ -698,7 +698,7 @@ function createEventCard(event) {
   const item = document.createElement("div");
   item.className = "calendar-item";
 
-  const eventDate = formatCalendarDate(event.start, event.isAllDay);
+  const eventDate = formatCalendarDate(event.start, event.end, event.isAllDay);
 
   item.innerHTML = `
     <div class="calendar-date-badge">${eventDate}</div>
@@ -711,25 +711,49 @@ function createEventCard(event) {
   return item;
 }
 
-function formatCalendarDate(dateString, isAllDay) {
-  const date = new Date(dateString);
-  if (isAllDay) {
-    return date.toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short"
-    }) + " (All Day)";
+function formatCalendarDate(startDateString, endDateString, isAllDay) {
+  const startDate = new Date(startDateString);
+  let endDate = endDateString ? new Date(endDateString) : null;
+
+  // iCal/Google all-day end dates are exclusive (e.g. May 10 all-day has end = May 11 00:00:00).
+  // Adjusting back by 1 second reflects true end day.
+  if (isAllDay && endDate) {
+    endDate = new Date(endDate.getTime() - 1000);
   }
 
-  return date.toLocaleDateString("en-GB", {
+  const dateOptions = {
     weekday: "short",
     day: "numeric",
-    month: "short",
+    month: "short"
+  };
+  const timeOptions = {
     hour: "2-digit",
     minute: "2-digit"
-  });
-}
+  };
 
+  // Check if start and end fall on different calendar days
+  const isMultiDay = endDate && (
+    startDate.getFullYear() !== endDate.getFullYear() ||
+    startDate.getMonth() !== endDate.getMonth() ||
+    startDate.getDate() !== endDate.getDate()
+  );
+
+  if (isMultiDay) {
+    const formattedStart = startDate.toLocaleDateString("en-GB", dateOptions);
+    const formattedEnd = endDate.toLocaleDateString("en-GB", dateOptions);
+    return `${formattedStart} – ${formattedEnd}`;
+  }
+
+  // Single-day event formatting
+  const formattedDate = startDate.toLocaleDateString("en-GB", dateOptions);
+
+  if (isAllDay) {
+    return `${formattedDate} (All Day)`;
+  }
+
+  const formattedTime = startDate.toLocaleTimeString("en-GB", timeOptions);
+  return `${formattedDate}, ${formattedTime}`;
+}
 // =========================================================
 // CHANGE PASSWORD
 // =========================================================
