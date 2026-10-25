@@ -713,7 +713,7 @@ const PERSON_MAP = {
   // Google colorId mapping:
   "5":  { name: "School Holidays",   color: "#fbd35d" }, // Banana (Yellow)
   "10": { name: "All",    color: "#51b749" }, // Basil (Green)
-  "4":  { name: "Miles",    color: "#b5f12b"" }, // Pumpkin (Orange)
+  "4":  { name: "Miles",    color: "#b5f12b" }, // Pumpkin (Orange)
   "3":  { name: "Paul",    color: "#dbadff" }, // Beetroot / Grape (Purple)
   "11": { name: "Jo",   color: "#dc2127" }, // Tomato (Red)
 
