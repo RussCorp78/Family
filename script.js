@@ -639,13 +639,45 @@ function renderCalendarEvents(events) {
   const todayEvents = [];
   const upcomingEvents = [];
 
-  events.forEach((event) => {
-    const eventDate = new Date(event.start);
+  // Format a date as YYYY-MM-DD using local time
+  function dateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 
-    if (eventDate >= today && eventDate < tomorrow) {
-      todayEvents.push(event);
-    } else if (eventDate >= tomorrow && eventDate <= nextWeek) {
-      upcomingEvents.push(event);
+  const todayKey = dateKey(today);
+  const tomorrowKey = dateKey(tomorrow);
+  const nextWeekKey = dateKey(nextWeek);
+
+  events.forEach((event) => {
+    if (event.isAllDay) {
+      // All-day events use an exclusive end date
+      const start = event.start;
+      const end = event.end || event.start;
+
+      // Does the event cover today?
+      if (start < tomorrowKey && end > todayKey) {
+        todayEvents.push(event);
+      }
+
+      // Does the event overlap the upcoming period?
+      if (start < nextWeekKey && end > tomorrowKey) {
+        upcomingEvents.push(event);
+      }
+    } else {
+      // Timed events: check whether their time ranges overlap
+      const start = new Date(event.start);
+      const end = new Date(event.end);
+
+      if (start < tomorrow && end > today) {
+        todayEvents.push(event);
+      }
+
+      if (start < nextWeek && end > tomorrow) {
+        upcomingEvents.push(event);
+      }
     }
   });
 
