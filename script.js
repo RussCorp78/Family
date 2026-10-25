@@ -708,9 +708,36 @@ function renderCalendarEvents(events, upcomingDays = 14) {
   }
 }
 
+// Map Google colorId numbers (and fallback hex codes) to names and custom display colors
+const PERSON_MAP = {
+  // Google colorId mapping:
+  "5":  { name: "School Holidays",   color: "#fbd35d" }, // Banana (Yellow)
+  "10": { name: "All",    color: "#51b749" }, // Basil (Green)
+  "6":  { name: "Miles",    color: "#ffb878" }, // Pumpkin (Orange)
+  "3":  { name: "Paul",    color: "#dbadff" }, // Beetroot / Grape (Purple)
+  "11": { name: "Jo",   color: "#dc2127" }, // Tomato (Red)
+
+  // Fallback hex mappings (in case worker outputs hex directly)
+  "#fbd35d": { name: "School Holidays",   color: "#fbd35d" },
+  "#51b749": { name: "All",    color: "#51b749" },
+  "#ffb878": { name: "Miles",    color: "#ffb878" },
+  "#dbadff": { name: "Paul",    color: "#dbadff" },
+  "#dc2127": { name: "Jo",   color: "#dc2127" }
+};
+
 function createEventCard(event) {
   const item = document.createElement("div");
   item.className = "calendar-item";
+
+  // Look up person details using event.colorId or event.color
+  const personKey = event.colorId || event.color;
+  const person = PERSON_MAP[personKey] || { 
+    name: "General", 
+    color: event.color || "#2563eb" 
+  };
+
+  // Set left border accent with the person's color
+  item.style.borderLeft = `4px solid ${person.color}`;
 
   const eventDate = formatCalendarDate(event.start, event.end, event.isAllDay);
 
@@ -718,10 +745,12 @@ function createEventCard(event) {
     <div class="calendar-date-badge">${eventDate}</div>
     <div class="calendar-content">
       <div class="calendar-title">${escapeHtml(event.summary)}</div>
-      <!-- Displays the rawcolor value from the JSON -->
-      <div class="calendar-color-info" style="font-size: 0.8rem; color: ${event.color || '#38bdf8'}; margin-top: 4px;">
-        Color: ${event.color || event.colorId || "Default"}
+      
+      <!-- Displays the person's name styled in their event color -->
+      <div class="calendar-person-tag" style="font-size: 0.8rem; font-weight: 600; color: ${person.color}; margin-top: 4px;">
+        👤 ${escapeHtml(person.name)}
       </div>
+
       ${event.location ? `<div class="calendar-location">📍 ${escapeHtml(event.location)}</div>` : ""}
       ${event.description ? `<div class="calendar-description">${escapeHtml(event.description)}</div>` : ""}
     </div>
