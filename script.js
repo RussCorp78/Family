@@ -718,6 +718,10 @@ function createEventCard(event) {
     <div class="calendar-date-badge">${eventDate}</div>
     <div class="calendar-content">
       <div class="calendar-title">${escapeHtml(event.summary)}</div>
+      <!-- Displays the rawcolor value from the JSON -->
+      <div class="calendar-color-info" style="font-size: 0.8rem; color: ${event.color || '#38bdf8'}; margin-top: 4px;">
+        Color: ${event.color || event.colorId || "Default"}
+      </div>
       ${event.location ? `<div class="calendar-location">📍 ${escapeHtml(event.location)}</div>` : ""}
       ${event.description ? `<div class="calendar-description">${escapeHtml(event.description)}</div>` : ""}
     </div>
